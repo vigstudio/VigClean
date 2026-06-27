@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Sources/VigClean/Resources/VigCleanLogo.png" width="128" alt="VigClean logo">
+</p>
+
 # VigClean
 
 VigClean is a native macOS cleaner built with SwiftUI. It helps users understand what is taking space on their Mac, review cleanup targets in detail, and delete only the files they intentionally select.
