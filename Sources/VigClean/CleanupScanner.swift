@@ -8,7 +8,7 @@ struct CleanupScanner: Sendable {
         var findings: [CleanupFinding] = []
 
         await progress("Scanning user caches...")
-        appendIfPresent(&findings, title: "User cache", detail: "Browser, updater, package manager, and app caches that can be recreated.", risk: .safe, selected: true, paths: [
+        let userCachePaths = [
             "~/Library/Caches/Google",
             "~/Library/Caches/antigravity-updater",
             "~/Library/Caches/termius-updater",
@@ -19,11 +19,13 @@ struct CleanupScanner: Sendable {
             "~/Library/Caches/composer",
             "~/Library/Caches/bun",
             "~/Library/Caches/typescript"
-        ])
+        ]
+        await announcePaths(userCachePaths, label: "User cache", progress: progress)
+        appendIfPresent(&findings, title: "User cache", detail: "Browser, updater, package manager, and app caches that can be recreated.", risk: .safe, selected: true, paths: userCachePaths)
         await Task.yield()
 
         await progress("Scanning VS Code cache...")
-        appendIfPresent(&findings, title: "VS Code cache", detail: "Extension packages, cached data, GPU cache, and temporary web cache.", risk: .safe, selected: true, paths: [
+        let vsCodePaths = [
             "~/Library/Application Support/Code/CachedExtensionVSIXs",
             "~/Library/Application Support/Code/CachedData",
             "~/Library/Application Support/Code/Cache",
@@ -31,34 +33,42 @@ struct CleanupScanner: Sendable {
             "~/Library/Application Support/Code/GPUCache",
             "~/Library/Application Support/Code/DawnCache",
             "~/Library/Application Support/Code/DawnGraphiteCache"
-        ])
+        ]
+        await announcePaths(vsCodePaths, label: "VS Code cache", progress: progress)
+        appendIfPresent(&findings, title: "VS Code cache", detail: "Extension packages, cached data, GPU cache, and temporary web cache.", risk: .safe, selected: true, paths: vsCodePaths)
         await Task.yield()
 
         await progress("Scanning Xcode derived data...")
-        appendIfPresent(&findings, title: "Xcode derived data", detail: "Build output and iOS device symbols that Xcode can regenerate.", risk: .safe, selected: true, paths: [
+        let xcodePaths = [
             "~/Library/Developer/Xcode/DerivedData",
             "~/Library/Developer/Xcode/iOS DeviceSupport"
-        ])
+        ]
+        await announcePaths(xcodePaths, label: "Xcode", progress: progress)
+        appendIfPresent(&findings, title: "Xcode derived data", detail: "Build output and iOS device symbols that Xcode can regenerate.", risk: .safe, selected: true, paths: xcodePaths)
         await Task.yield()
 
         await progress("Scanning Node and browser automation cache...")
-        appendIfPresent(&findings, title: "Node and browser automation cache", detail: "npm, npx, logs, and Puppeteer browser cache.", risk: .safe, selected: true, paths: [
+        let nodeCachePaths = [
             "~/.cache/puppeteer",
             "~/.npm/_cacache",
             "~/.npm/_npx",
             "~/.npm/_logs"
-        ])
+        ]
+        await announcePaths(nodeCachePaths, label: "Node cache", progress: progress)
+        appendIfPresent(&findings, title: "Node and browser automation cache", detail: "npm, npx, logs, and Puppeteer browser cache.", risk: .safe, selected: true, paths: nodeCachePaths)
         await Task.yield()
 
         await progress("Scanning logs and Trash...")
-        appendIfPresent(&findings, title: "Logs and Trash", detail: "User logs and files already moved to Trash.", risk: .safe, selected: true, paths: [
+        let logPaths = [
             "~/Library/Logs",
             "~/.Trash"
-        ])
+        ]
+        await announcePaths(logPaths, label: "Logs and Trash", progress: progress)
+        appendIfPresent(&findings, title: "Logs and Trash", detail: "User logs and files already moved to Trash.", risk: .safe, selected: true, paths: logPaths)
         await Task.yield()
 
         await progress("Scanning developer package caches...")
-        appendIfPresent(&findings, title: "Developer package caches", detail: "Gradle, Pub, CocoaPods, SwiftPM, pip, Poetry, pnpm, and yarn caches.", risk: .review, selected: true, paths: [
+        let packageCachePaths = [
             "~/.gradle/caches",
             "~/.pub-cache",
             "~/Library/Caches/CocoaPods",
@@ -67,54 +77,64 @@ struct CleanupScanner: Sendable {
             "~/Library/Caches/pypoetry",
             "~/Library/Caches/pnpm",
             "~/Library/Caches/yarn"
-        ])
+        ]
+        await announcePaths(packageCachePaths, label: "Package caches", progress: progress)
+        appendIfPresent(&findings, title: "Developer package caches", detail: "Gradle, Pub, CocoaPods, SwiftPM, pip, Poetry, pnpm, and yarn caches.", risk: .review, selected: true, paths: packageCachePaths)
         await Task.yield()
 
         await progress("Scanning Chrome local model cache...")
-        appendIfPresent(&findings, title: "Chrome on-device model", detail: "Large local Chrome AI/model cache that can be downloaded again.", risk: .review, selected: true, paths: [
+        let chromePaths = [
             "~/Library/Application Support/Google/Chrome/OptGuideOnDeviceModel"
-        ])
+        ]
+        await announcePaths(chromePaths, label: "Chrome model cache", progress: progress)
+        appendIfPresent(&findings, title: "Chrome on-device model", detail: "Large local Chrome AI/model cache that can be downloaded again.", risk: .review, selected: true, paths: chromePaths)
         await Task.yield()
 
-        await progress("Scanning developer build artifacts...")
+        await progress("Developer build artifacts • ~/Developer")
         let developerBuilds = findDirectories(under: "~/Developer", names: ["build", ".dart_tool"])
         appendIfPresent(&findings, title: "Developer build artifacts", detail: "Flutter and local project build outputs. Projects may rebuild slower next time.", risk: .review, selected: true, urls: developerBuilds)
         await Task.yield()
 
         if includePrivacySensitiveFolders {
-            await progress("Scanning Downloads and Documents for installers...")
+            await progress("Large installers • ~/Downloads")
             let installers = findInstallers(under: ["~/Downloads", "~/Documents/Codex"], minimumBytes: 100 * 1024 * 1024)
             appendIfPresent(&findings, title: "Large installers and archives", detail: "Downloaded .dmg, .pkg, .zip, .iso, and compressed archives over 100 MB.", risk: .review, selected: false, urls: installers)
             await Task.yield()
         }
 
-        await progress("Scanning developer dependencies...")
+        await progress("Developer dependencies • ~/Developer")
         let nodeModules = findDirectories(under: "~/Developer", names: ["node_modules"])
         appendIfPresent(&findings, title: "Developer node_modules", detail: "Project dependencies. Delete only for projects you can reinstall with npm, pnpm, or yarn.", risk: .personal, selected: false, urls: nodeModules)
         await Task.yield()
 
         await progress("Scanning messaging app data...")
-        appendIfPresent(&findings, title: "Zalo local data", detail: "Local Zalo database, media, and cache. This signs Zalo out or forces it to rebuild local data.", risk: .personal, selected: false, paths: [
+        let zaloPaths = [
             "~/Library/Application Support/ZaloData"
-        ])
+        ]
+        await announcePaths(zaloPaths, label: "Zalo data", progress: progress)
+        appendIfPresent(&findings, title: "Zalo local data", detail: "Local Zalo database, media, and cache. This signs Zalo out or forces it to rebuild local data.", risk: .personal, selected: false, paths: zaloPaths)
 
-        appendMessagingAppData(to: &findings)
+        await appendMessagingAppData(to: &findings, progress: progress)
         await Task.yield()
 
-        await progress("Scanning large application data...")
+        await progress("Large application data • ~/Library/Application Support")
         appendLargeAppData(to: &findings)
         await Task.yield()
 
         await progress("Scanning Android SDK...")
-        appendIfPresent(&findings, title: "Android SDK", detail: "Android development SDK files. Delete only if you do not need Android development on this Mac.", risk: .personal, selected: false, paths: [
+        let androidPaths = [
             "~/Library/Android/sdk"
-        ])
+        ]
+        await announcePaths(androidPaths, label: "Android SDK", progress: progress)
+        appendIfPresent(&findings, title: "Android SDK", detail: "Android development SDK files. Delete only if you do not need Android development on this Mac.", risk: .personal, selected: false, paths: androidPaths)
         await Task.yield()
 
         await progress("Scanning simulator devices...")
-        appendIfPresent(&findings, title: "Simulator devices", detail: "Installed iOS simulator device data. Delete only if you do not need current simulator state.", risk: .personal, selected: false, paths: [
+        let simulatorPaths = [
             "~/Library/Developer/CoreSimulator/Devices"
-        ])
+        ]
+        await announcePaths(simulatorPaths, label: "Simulator devices", progress: progress)
+        appendIfPresent(&findings, title: "Simulator devices", detail: "Installed iOS simulator device data. Delete only if you do not need current simulator state.", risk: .personal, selected: false, paths: simulatorPaths)
         await progress("Sorting scan results...")
 
         return findings
@@ -215,7 +235,7 @@ struct CleanupScanner: Sendable {
         ))
     }
 
-    private func appendMessagingAppData(to findings: inout [CleanupFinding]) {
+    private func appendMessagingAppData(to findings: inout [CleanupFinding], progress: @MainActor (String) -> Void) async {
         let appTargets: [(title: String, detail: String, paths: [String])] = [
             (
                 "Telegram local data",
@@ -334,6 +354,7 @@ struct CleanupScanner: Sendable {
         ]
 
         for target in appTargets {
+            await announcePaths(target.paths, label: target.title, progress: progress)
             appendIfPresent(
                 &findings,
                 title: target.title,
@@ -342,6 +363,13 @@ struct CleanupScanner: Sendable {
                 selected: false,
                 paths: target.paths
             )
+        }
+    }
+
+    private func announcePaths(_ paths: [String], label: String, progress: @MainActor (String) -> Void) async {
+        for path in paths {
+            await progress("\(label) • \(expand(path).path)")
+            await Task.yield()
         }
     }
 

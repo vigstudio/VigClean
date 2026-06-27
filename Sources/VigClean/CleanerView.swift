@@ -47,7 +47,7 @@ struct CleanerView: View {
                     .foregroundStyle(.secondary)
                 if !model.progressDetail.isEmpty {
                     HStack(spacing: 8) {
-                        if model.isScanning || model.isScanningApps || model.isCleaning {
+                        if model.isScanning || model.isScanningApps || model.isScanningDisk || model.isCleaning {
                             ProgressView()
                                 .controlSize(.small)
                                 .scaleEffect(0.72)
@@ -168,6 +168,16 @@ private struct CleanTab: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
 
+                if model.isScanning {
+                    ScanProgressStrip(
+                        title: model.status,
+                        detail: model.progressDetail.isEmpty ? "Preparing scan..." : model.progressDetail,
+                        systemImage: "magnifyingglass"
+                    )
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 10)
+                }
+
                 List(selection: .constant(Set<CleanupFinding.ID>())) {
                     ForEach(model.visibleFindings) { finding in
                         FindingRow(
@@ -191,14 +201,6 @@ private struct CleanTab: View {
                         )
                     }
                 }
-                .overlay {
-                    if model.isScanning && model.findings.isEmpty {
-                        ProgressCard(
-                            title: model.status,
-                            detail: model.progressDetail.isEmpty ? "Preparing scan..." : model.progressDetail
-                        )
-                    }
-                }
             }
 
             UtilityPanel(model: model)
@@ -207,30 +209,41 @@ private struct CleanTab: View {
     }
 }
 
-private struct ProgressCard: View {
+private struct ScanProgressStrip: View {
     let title: String
     let detail: String
+    let systemImage: String
 
     var body: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 12) {
             ProgressView()
-                .controlSize(.large)
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-            Text(detail)
-                .font(.callout)
+                .controlSize(.small)
+                .frame(width: 18, height: 18)
+
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .frame(maxWidth: 360)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer()
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 24)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(AppTheme.control, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(.quaternary, lineWidth: 1)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
         )
     }
 }
@@ -286,6 +299,16 @@ private struct AppsTab: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
 
+            if model.isScanningApps {
+                ScanProgressStrip(
+                    title: model.status,
+                    detail: model.progressDetail.isEmpty ? "Preparing app scan..." : model.progressDetail,
+                    systemImage: "square.grid.2x2"
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+            }
+
             ScrollView {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
                     ForEach(model.visibleApps) { app in
@@ -310,14 +333,6 @@ private struct AppsTab: View {
                         systemImage: "square.grid.2x2",
                         title: model.t("readyToScanApps"),
                         detail: model.t("scanAppsDetail")
-                    )
-                }
-            }
-            .overlay {
-                if model.isScanningApps && model.installedApps.isEmpty {
-                    ProgressCard(
-                        title: model.status,
-                        detail: model.progressDetail.isEmpty ? "Preparing app scan..." : model.progressDetail
                     )
                 }
             }
@@ -357,6 +372,16 @@ private struct DiskTab: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
 
+            if model.isScanningDisk {
+                ScanProgressStrip(
+                    title: model.status,
+                    detail: model.progressDetail.isEmpty ? "Preparing disk analysis..." : model.progressDetail,
+                    systemImage: "chart.pie"
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+            }
+
             if let analysis = model.diskAnalysis {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
@@ -393,17 +418,12 @@ private struct DiskTab: View {
                     .padding(24)
                 }
             } else {
-                ZStack {
-                    EmptyStateCard(
-                        systemImage: "chart.pie",
-                        title: model.t("readyToAnalyzeDisk"),
-                        detail: model.t("analyzeDiskDetail")
-                    )
-
-                    if model.isScanningDisk {
-                        ProgressCard(
-                            title: model.status,
-                            detail: model.progressDetail.isEmpty ? "Preparing disk analysis..." : model.progressDetail
+                VStack {
+                    if !model.isScanningDisk {
+                        EmptyStateCard(
+                            systemImage: "chart.pie",
+                            title: model.t("readyToAnalyzeDisk"),
+                            detail: model.t("analyzeDiskDetail")
                         )
                     }
                 }

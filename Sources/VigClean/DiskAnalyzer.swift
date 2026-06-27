@@ -8,28 +8,41 @@ struct DiskAnalyzer: Sendable {
         await progress("Reading disk capacity...")
         let volume = volumeSummary()
 
-        await progress("Scanning user folders...")
-        let userCategories = [
-            category("Documents", detail: "User documents and Codex workspaces.", path: "~/Documents", color: "blue"),
-            category("Downloads", detail: "Downloaded files and installers.", path: "~/Downloads", color: "orange"),
-            category("Desktop", detail: "Desktop files.", path: "~/Desktop", color: "cyan"),
-            category("Pictures", detail: "Photos and image libraries.", path: "~/Pictures", color: "pink"),
-            category("Movies", detail: "Videos and screen recordings.", path: "~/Movies", color: "purple"),
-            category("Music", detail: "Music libraries and audio files.", path: "~/Music", color: "mint")
-        ].compactMap { $0 }
+        var userCategories: [DiskCategorySummary] = []
+        let userTargets = [
+            ("Documents", "User documents and Codex workspaces.", "~/Documents", "blue"),
+            ("Downloads", "Downloaded files and installers.", "~/Downloads", "orange"),
+            ("Desktop", "Desktop files.", "~/Desktop", "cyan"),
+            ("Pictures", "Photos and image libraries.", "~/Pictures", "pink"),
+            ("Movies", "Videos and screen recordings.", "~/Movies", "purple"),
+            ("Music", "Music libraries and audio files.", "~/Music", "mint")
+        ]
+        for target in userTargets {
+            await progress("Disk category • \(expand(target.2).path)")
+            if let category = category(target.0, detail: target.1, path: target.2, color: target.3) {
+                userCategories.append(category)
+            }
+            await Task.yield()
+        }
         await Task.yield()
 
-        await progress("Scanning Library application data...")
-        let libraryCategories = [
-            category("Application Support", detail: "Per-app databases, local media, models, and support data.", path: "~/Library/Application Support", color: "green"),
-            category("Containers", detail: "Sandboxed app containers.", path: "~/Library/Containers", color: "teal"),
-            category("Group Containers", detail: "Shared app containers, often messaging and cloud app data.", path: "~/Library/Group Containers", color: "indigo"),
-            category("Caches", detail: "Cache files that apps can usually recreate.", path: "~/Library/Caches", color: "yellow"),
-            category("Developer", detail: "Xcode, simulator, SDK, and developer tool data.", path: "~/Library/Developer", color: "red")
-        ].compactMap { $0 }
+        var libraryCategories: [DiskCategorySummary] = []
+        let libraryTargets = [
+            ("Application Support", "Per-app databases, local media, models, and support data.", "~/Library/Application Support", "green"),
+            ("Containers", "Sandboxed app containers.", "~/Library/Containers", "teal"),
+            ("Group Containers", "Shared app containers, often messaging and cloud app data.", "~/Library/Group Containers", "indigo"),
+            ("Caches", "Cache files that apps can usually recreate.", "~/Library/Caches", "yellow"),
+            ("Developer", "Xcode, simulator, SDK, and developer tool data.", "~/Library/Developer", "red")
+        ]
+        for target in libraryTargets {
+            await progress("Disk category • \(expand(target.2).path)")
+            if let category = category(target.0, detail: target.1, path: target.2, color: target.3) {
+                libraryCategories.append(category)
+            }
+            await Task.yield()
+        }
         await Task.yield()
 
-        await progress("Finding largest folders...")
         let roots = [
             "~/Documents",
             "~/Downloads",
@@ -41,7 +54,13 @@ struct DiskAnalyzer: Sendable {
             "~/Library/Developer",
             "~/Library/Android"
         ]
-        let items = roots.flatMap { largeChildren(under: $0, minimumBytes: 100 * 1024 * 1024) }
+        var largeItems: [DiskUsageItem] = []
+        for root in roots {
+            await progress("Largest items • \(expand(root).path)")
+            largeItems.append(contentsOf: largeChildren(under: root, minimumBytes: 100 * 1024 * 1024))
+            await Task.yield()
+        }
+        let items = largeItems
             .sorted { $0.bytes > $1.bytes }
             .prefix(80)
             .map { $0 }

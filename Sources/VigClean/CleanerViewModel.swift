@@ -107,13 +107,16 @@ final class CleanerViewModel: ObservableObject {
     func scanApps() {
         guard !isScanningApps, !isCleaning else { return }
         isScanningApps = true
+        status = "Scanning apps..."
         progressDetail = "Preparing app scan..."
+        lastErrors = []
 
         Task {
             let apps = await CleanupScanner().scanInstalledApps { [weak self] message in
                 self?.progressDetail = message
             }
             installedApps = apps
+            status = apps.isEmpty ? "No installed apps found" : "Found \(apps.count) installed apps"
             progressDetail = "App scan complete"
             hasScannedApps = true
             isScanningApps = false
