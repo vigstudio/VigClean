@@ -2,14 +2,27 @@ import Foundation
 
 struct CleanupScanner: Sendable {
     private let home = FileManager.default.homeDirectoryForCurrentUser
+    private let sizeCache = DirectorySizeCache()
     private var fileManager: FileManager { .default }
 
-    func scan(includePrivacySensitiveFolders: Bool, progress: @MainActor (String) -> Void = { _ in }) async -> [CleanupFinding] {
+    func scan(includePrivacySensitiveFolders: Bool, progress: @MainActor (String, Double) -> Void = { _, _ in }) async -> [CleanupFinding] {
         var findings: [CleanupFinding] = []
+        let stepCounter = OperationStepCounter(total: includePrivacySensitiveFolders ? 15 : 14)
 
-        await progress("Scanning user caches...")
+        @MainActor func report(_ message: String) {
+            progress(message, stepCounter.fraction())
+        }
+
+        @MainActor func advance(_ message: String) {
+            progress(message, stepCounter.advance())
+        }
+
+        await report("Scanning user caches...")
         let userCachePaths = [
             "~/Library/Caches/Google",
+            "~/Library/Caches/com.apple.Safari",
+            "~/Library/Caches/Firefox",
+            "~/Library/Caches/com.microsoft.VSCode.ShipIt",
             "~/Library/Caches/antigravity-updater",
             "~/Library/Caches/termius-updater",
             "~/Library/Caches/pencil-updater",
@@ -20,11 +33,12 @@ struct CleanupScanner: Sendable {
             "~/Library/Caches/bun",
             "~/Library/Caches/typescript"
         ]
-        await announcePaths(userCachePaths, label: "User cache", progress: progress)
+        await announcePaths(userCachePaths, label: "User cache") { report($0) }
         appendIfPresent(&findings, title: "User cache", detail: "Browser, updater, package manager, and app caches that can be recreated.", risk: .safe, selected: true, paths: userCachePaths)
+        await advance("User cache scan complete")
         await Task.yield()
 
-        await progress("Scanning VS Code cache...")
+        await report("Scanning VS Code cache...")
         let vsCodePaths = [
             "~/Library/Application Support/Code/CachedExtensionVSIXs",
             "~/Library/Application Support/Code/CachedData",
@@ -34,42 +48,50 @@ struct CleanupScanner: Sendable {
             "~/Library/Application Support/Code/DawnCache",
             "~/Library/Application Support/Code/DawnGraphiteCache"
         ]
-        await announcePaths(vsCodePaths, label: "VS Code cache", progress: progress)
+        await announcePaths(vsCodePaths, label: "VS Code cache") { report($0) }
         appendIfPresent(&findings, title: "VS Code cache", detail: "Extension packages, cached data, GPU cache, and temporary web cache.", risk: .safe, selected: true, paths: vsCodePaths)
+        await advance("VS Code cache scan complete")
         await Task.yield()
 
-        await progress("Scanning Xcode derived data...")
+        await report("Scanning Xcode derived data...")
         let xcodePaths = [
             "~/Library/Developer/Xcode/DerivedData",
             "~/Library/Developer/Xcode/iOS DeviceSupport"
         ]
-        await announcePaths(xcodePaths, label: "Xcode", progress: progress)
+        await announcePaths(xcodePaths, label: "Xcode") { report($0) }
         appendIfPresent(&findings, title: "Xcode derived data", detail: "Build output and iOS device symbols that Xcode can regenerate.", risk: .safe, selected: true, paths: xcodePaths)
+        await advance("Xcode scan complete")
         await Task.yield()
 
-        await progress("Scanning Node and browser automation cache...")
+        await report("Scanning Node and browser automation cache...")
         let nodeCachePaths = [
             "~/.cache/puppeteer",
             "~/.npm/_cacache",
             "~/.npm/_npx",
             "~/.npm/_logs"
         ]
-        await announcePaths(nodeCachePaths, label: "Node cache", progress: progress)
+        await announcePaths(nodeCachePaths, label: "Node cache") { report($0) }
         appendIfPresent(&findings, title: "Node and browser automation cache", detail: "npm, npx, logs, and Puppeteer browser cache.", risk: .safe, selected: true, paths: nodeCachePaths)
+        await advance("Node cache scan complete")
         await Task.yield()
 
-        await progress("Scanning logs and Trash...")
+        await report("Scanning logs and Trash...")
         let logPaths = [
             "~/Library/Logs",
+            "~/Library/DiagnosticReports",
             "~/.Trash"
         ]
-        await announcePaths(logPaths, label: "Logs and Trash", progress: progress)
+        await announcePaths(logPaths, label: "Logs and Trash") { report($0) }
         appendIfPresent(&findings, title: "Logs and Trash", detail: "User logs and files already moved to Trash.", risk: .safe, selected: true, paths: logPaths)
+        await advance("Logs and Trash scan complete")
         await Task.yield()
 
-        await progress("Scanning developer package caches...")
+        await report("Scanning developer package caches...")
         let packageCachePaths = [
             "~/.gradle/caches",
+            "~/.cargo/registry/cache",
+            "~/.cargo/git/checkouts",
+            "~/.cache/pip",
             "~/.pub-cache",
             "~/Library/Caches/CocoaPods",
             "~/Library/Caches/org.swift.swiftpm",
@@ -78,64 +100,72 @@ struct CleanupScanner: Sendable {
             "~/Library/Caches/pnpm",
             "~/Library/Caches/yarn"
         ]
-        await announcePaths(packageCachePaths, label: "Package caches", progress: progress)
+        await announcePaths(packageCachePaths, label: "Package caches") { report($0) }
         appendIfPresent(&findings, title: "Developer package caches", detail: "Gradle, Pub, CocoaPods, SwiftPM, pip, Poetry, pnpm, and yarn caches.", risk: .review, selected: true, paths: packageCachePaths)
+        await advance("Package cache scan complete")
         await Task.yield()
 
-        await progress("Scanning Chrome local model cache...")
+        await report("Scanning Chrome local model cache...")
         let chromePaths = [
             "~/Library/Application Support/Google/Chrome/OptGuideOnDeviceModel"
         ]
-        await announcePaths(chromePaths, label: "Chrome model cache", progress: progress)
+        await announcePaths(chromePaths, label: "Chrome model cache") { report($0) }
         appendIfPresent(&findings, title: "Chrome on-device model", detail: "Large local Chrome AI/model cache that can be downloaded again.", risk: .review, selected: true, paths: chromePaths)
+        await advance("Chrome model scan complete")
         await Task.yield()
 
-        await progress("Developer build artifacts • ~/Developer")
+        await report("Developer build artifacts • ~/Developer")
         let developerBuilds = findDirectories(under: "~/Developer", names: ["build", ".dart_tool"])
         appendIfPresent(&findings, title: "Developer build artifacts", detail: "Flutter and local project build outputs. Projects may rebuild slower next time.", risk: .review, selected: true, urls: developerBuilds)
+        await advance("Developer build scan complete")
         await Task.yield()
 
         if includePrivacySensitiveFolders {
-            await progress("Large installers • ~/Downloads")
+            await report("Large installers • ~/Downloads")
             let installers = findInstallers(under: ["~/Downloads", "~/Documents/Codex"], minimumBytes: 100 * 1024 * 1024)
             appendIfPresent(&findings, title: "Large installers and archives", detail: "Downloaded .dmg, .pkg, .zip, .iso, and compressed archives over 100 MB.", risk: .review, selected: false, urls: installers)
+            await advance("Installer scan complete")
             await Task.yield()
         }
 
-        await progress("Developer dependencies • ~/Developer")
+        await report("Developer dependencies • ~/Developer")
         let nodeModules = findDirectories(under: "~/Developer", names: ["node_modules"])
         appendIfPresent(&findings, title: "Developer node_modules", detail: "Project dependencies. Delete only for projects you can reinstall with npm, pnpm, or yarn.", risk: .personal, selected: false, urls: nodeModules)
+        await advance("Dependency scan complete")
         await Task.yield()
 
-        await progress("Scanning messaging app data...")
+        await report("Scanning messaging app data...")
         let zaloPaths = [
             "~/Library/Application Support/ZaloData"
         ]
-        await announcePaths(zaloPaths, label: "Zalo data", progress: progress)
+        await announcePaths(zaloPaths, label: "Zalo data") { report($0) }
         appendIfPresent(&findings, title: "Zalo local data", detail: "Local Zalo database, media, and cache. This signs Zalo out or forces it to rebuild local data.", risk: .personal, selected: false, paths: zaloPaths)
 
-        await appendMessagingAppData(to: &findings, progress: progress)
+        await appendMessagingAppData(to: &findings) { report($0) }
+        await advance("Messaging data scan complete")
         await Task.yield()
 
-        await progress("Large application data • ~/Library/Application Support")
+        await report("Large application data • ~/Library/Application Support")
         appendLargeAppData(to: &findings)
+        await advance("Large application data scan complete")
         await Task.yield()
 
-        await progress("Scanning Android SDK...")
+        await report("Scanning Android SDK...")
         let androidPaths = [
             "~/Library/Android/sdk"
         ]
-        await announcePaths(androidPaths, label: "Android SDK", progress: progress)
+        await announcePaths(androidPaths, label: "Android SDK") { report($0) }
         appendIfPresent(&findings, title: "Android SDK", detail: "Android development SDK files. Delete only if you do not need Android development on this Mac.", risk: .personal, selected: false, paths: androidPaths)
+        await advance("Android SDK scan complete")
         await Task.yield()
 
-        await progress("Scanning simulator devices...")
+        await report("Scanning simulator devices...")
         let simulatorPaths = [
             "~/Library/Developer/CoreSimulator/Devices"
         ]
-        await announcePaths(simulatorPaths, label: "Simulator devices", progress: progress)
+        await announcePaths(simulatorPaths, label: "Simulator devices") { report($0) }
         appendIfPresent(&findings, title: "Simulator devices", detail: "Installed iOS simulator device data. Delete only if you do not need current simulator state.", risk: .personal, selected: false, paths: simulatorPaths)
-        await progress("Sorting scan results...")
+        await advance("Sorting scan results...")
 
         return findings
             .filter { $0.bytes > 0 }
@@ -147,21 +177,26 @@ struct CleanupScanner: Sendable {
             }
     }
 
-    func scanInstalledApps(progress: @MainActor (String) -> Void = { _ in }) async -> [InstalledApp] {
-        await progress("Scanning installed applications...")
+    func scanInstalledApps(progress: @MainActor (String, Double) -> Void = { _, _ in }) async -> [InstalledApp] {
+        await progress("Scanning installed applications...", 0)
         var apps: [InstalledApp] = []
-        for appURL in findApplications(under: ["/Applications", "~/Applications"]) {
-            await progress("Scanning app: \(appURL.deletingPathExtension().lastPathComponent)")
+        let appURLs = findApplications(under: ["/Applications", "~/Applications"])
+        for (index, appURL) in appURLs.enumerated() {
+            if Task.isCancelled { break }
+            await progress("Scanning app: \(appURL.deletingPathExtension().lastPathComponent)", Double(index) / Double(max(appURLs.count, 1)))
             apps.append(installedApp(for: appURL))
             await Task.yield()
         }
+        await progress("Application scan complete", 1)
 
         return apps.sorted { lhs, rhs in
             lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
 
-    func delete(_ findings: [CleanupFinding], permanently: Bool, terminateAffectedApps: Bool, requestAdminWhenNeeded: Bool) async -> DeleteResult {
+    func delete(_ findings: [CleanupFinding], permanently: Bool, terminateAffectedApps: Bool, requestAdminWhenNeeded: Bool, protectedPaths: Set<String> = [], progress: @MainActor (String, Double) -> Void = { _, _ in }) async -> DeleteResult {
+        let freeBytesBefore = availableDiskBytes()
+        let safetyValidator = DeletionSafetyValidator(home: home)
         if terminateAffectedApps {
             for processName in affectedProcessNames(for: findings) {
                 terminateProcesses(matching: processName)
@@ -171,6 +206,8 @@ struct CleanupScanner: Sendable {
         var deleted: Int64 = 0
         var errors: [String] = []
         var adminEntries: [(url: URL, bytes: Int64)] = []
+        let totalEntries = max(findings.flatMap(\.pathEntries).flatMap(\.flattened).filter { fileManager.fileExists(atPath: $0.url.path) }.count, 1)
+        var completedEntries = 0
 
         for finding in findings {
             if finding.title.hasPrefix("Uninstall App: ") {
@@ -180,7 +217,9 @@ struct CleanupScanner: Sendable {
 
             for entry in finding.pathEntries.flatMap(\.flattened) where fileManager.fileExists(atPath: entry.url.path) {
                 let url = entry.url
+                await progress(url.path, Double(completedEntries) / Double(totalEntries))
                 do {
+                    try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
                     let size = directorySize(url)
                     if permanently, entry.requiresAdmin, requestAdminWhenNeeded {
                         adminEntries.append((url, size))
@@ -191,6 +230,8 @@ struct CleanupScanner: Sendable {
                         _ = try fileManager.trashItem(at: url, resultingItemURL: nil)
                         deleted += size
                     }
+                } catch let safetyError as DeletionSafetyError {
+                    errors.append("\(url.path): \(safetyError.localizedDescription)")
                 } catch {
                     if permanently, requestAdminWhenNeeded {
                         let size = directorySize(url)
@@ -199,12 +240,17 @@ struct CleanupScanner: Sendable {
                         errors.append("\(url.path): \(error.localizedDescription)")
                     }
                 }
+                completedEntries += 1
+                await progress(url.path, Double(completedEntries) / Double(totalEntries))
             }
         }
 
         if !adminEntries.isEmpty {
             let uniqueEntries = uniqueAdminEntries(adminEntries)
             do {
+                for entry in uniqueEntries {
+                    try safetyValidator.validate(entry.url, userProtectedPaths: protectedPaths)
+                }
                 try removeWithAdministratorPrivileges(uniqueEntries.map(\.url))
                 deleted += uniqueEntries.reduce(Int64(0)) { $0 + $1.bytes }
             } catch {
@@ -212,7 +258,23 @@ struct CleanupScanner: Sendable {
             }
         }
 
-        return DeleteResult(deletedBytes: deleted, errors: errors)
+        return DeleteResult(
+            deletedBytes: deleted,
+            errors: errors,
+            freeBytesBefore: freeBytesBefore,
+            freeBytesAfter: availableDiskBytes()
+        )
+    }
+
+    private func availableDiskBytes() -> Int64 {
+        let values = try? home.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
+        if let important = values?.volumeAvailableCapacityForImportantUsage {
+            return Int64(important)
+        }
+        if let available = values?.volumeAvailableCapacity {
+            return Int64(available)
+        }
+        return 0
     }
 
     private func appendIfPresent(_ findings: inout [CleanupFinding], title: String, detail: String, risk: CleanupRisk, selected: Bool, paths: [String]) {
@@ -220,6 +282,7 @@ struct CleanupScanner: Sendable {
     }
 
     private func appendIfPresent(_ findings: inout [CleanupFinding], title: String, detail: String, risk: CleanupRisk, selected: Bool, urls: [URL]) {
+        guard !Task.isCancelled else { return }
         let entries = pathEntries(for: urls)
         let bytes = entries.reduce(Int64(0)) { $0 + $1.bytes }
 
@@ -395,6 +458,7 @@ struct CleanupScanner: Sendable {
     }
 
     private func largeChildren(under root: String, minimumBytes: Int64) -> [URL] {
+        guard !Task.isCancelled else { return [] }
         let rootURL = expand(root)
         guard fileManager.fileExists(atPath: rootURL.path),
               let children = try? fileManager.contentsOfDirectory(
@@ -423,11 +487,19 @@ struct CleanupScanner: Sendable {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
+        guard !Task.isCancelled else { return 0 }
+        let cacheKey = url.standardizedFileURL.path
+        if let cached = sizeCache.value(for: cacheKey) {
+            return cached
+        }
+
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return 0 }
 
         if !isDirectory.boolValue {
-            return fileSize(url)
+            let bytes = fileSize(url)
+            sizeCache.insert(bytes, for: cacheKey)
+            return bytes
         }
 
         guard let enumerator = fileManager.enumerator(
@@ -441,8 +513,10 @@ struct CleanupScanner: Sendable {
 
         var total: Int64 = 0
         for case let fileURL as URL in enumerator {
+            if Task.isCancelled { break }
             total += fileSize(fileURL)
         }
+        sizeCache.insert(total, for: cacheKey)
         return total
     }
 
@@ -462,6 +536,7 @@ struct CleanupScanner: Sendable {
     }
 
     private func findDirectories(under root: String, names: Set<String>) -> [URL] {
+        guard !Task.isCancelled else { return [] }
         let rootURL = expand(root)
         guard fileManager.fileExists(atPath: rootURL.path),
               let enumerator = fileManager.enumerator(
@@ -475,6 +550,7 @@ struct CleanupScanner: Sendable {
 
         var results: [URL] = []
         for case let url as URL in enumerator {
+            if Task.isCancelled { break }
             guard names.contains(url.lastPathComponent) else { continue }
             let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard values?.isDirectory == true, values?.isSymbolicLink != true else { continue }
@@ -485,6 +561,7 @@ struct CleanupScanner: Sendable {
     }
 
     private func findInstallers(under roots: [String], minimumBytes: Int64) -> [URL] {
+        guard !Task.isCancelled else { return [] }
         let extensions = Set(["dmg", "pkg", "zip", "iso", "tgz", "gz", "xz"])
         var results: [URL] = []
 
@@ -497,6 +574,7 @@ struct CleanupScanner: Sendable {
             ) else { continue }
 
             for case let url as URL in enumerator {
+                if Task.isCancelled { break }
                 guard extensions.contains(url.pathExtension.lowercased()) else { continue }
                 let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .isSymbolicLinkKey])
                 guard values?.isRegularFile == true, values?.isSymbolicLink != true, Int64(values?.fileSize ?? 0) >= minimumBytes else { continue }
@@ -600,7 +678,8 @@ struct CleanupScanner: Sendable {
     }
 
     private func pathEntries(for urls: [URL]) -> [CleanupPathEntry] {
-        unique(urls)
+        guard !Task.isCancelled else { return [] }
+        return unique(urls)
             .filter { fileManager.fileExists(atPath: $0.path) }
             .map { url in
                 CleanupPathEntry(
@@ -736,5 +815,22 @@ struct CleanupScanner: Sendable {
                 ]
             )
         }
+    }
+}
+
+private final class DirectorySizeCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: Int64] = [:]
+
+    func value(for path: String) -> Int64? {
+        lock.lock()
+        defer { lock.unlock() }
+        return values[path]
+    }
+
+    func insert(_ value: Int64, for path: String) {
+        lock.lock()
+        values[path] = value
+        lock.unlock()
     }
 }

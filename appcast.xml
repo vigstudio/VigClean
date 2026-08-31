@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>VigClean Updates</title>
+    <link>https://github.com/vigstudio/VigClean</link>
+    <description>Signed updates for VigClean.</description>
+    <language>en</language>
+    <item>
+      <title>VigClean 0.0.2</title>
+      <link>https://vigclean-guide.netlify.app</link>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>0.0.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://github.com/vigstudio/VigClean/releases/tag/v0.0.2</sparkle:releaseNotesLink>
+      <pubDate>Mon, 31 Aug 2026 17:28:24 +0700</pubDate>
+      <enclosure
+        url="https://github.com/vigstudio/VigClean/releases/download/v0.0.2/VigClean-0.0.2-universal.app.zip"
+        sparkle:edSignature="WyZxGXhIDZoB6bHe/p6znIk2ACXwBtpR1nvBCyaL4phEvSiP7iF20Nju+WX5hu/6yoSAs9sYI0itlje8xFGuCw=="
+        length="5807200"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

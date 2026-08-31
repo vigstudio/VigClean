@@ -4,3 +4,6 @@ dist/
 .DS_Store
 DerivedData/
 *.xcuserdata/
+
+# Local Netlify folder
+.netlify

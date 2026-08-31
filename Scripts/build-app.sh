@@ -8,7 +8,9 @@ APP_DIR="$ROOT_DIR/build/VigClean.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
 ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
+SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 
 cd "$ROOT_DIR"
 if [ "$CONFIGURATION" = "release" ]; then
@@ -18,9 +20,11 @@ else
 fi
 
 rm -rf "$APP_DIR" "$ICONSET_DIR"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$ICONSET_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR" "$ICONSET_DIR"
 
 cp "$BUILD_DIR/VigClean" "$MACOS_DIR/VigClean"
+ditto "$SPARKLE_FRAMEWORK" "$FRAMEWORKS_DIR/Sparkle.framework"
+install_name_tool -add_rpath "@loader_path/../Frameworks" "$MACOS_DIR/VigClean"
 if [ -d "$BUILD_DIR/VigClean_VigClean.bundle" ]; then
   cp -R "$BUILD_DIR/VigClean_VigClean.bundle" "$RESOURCES_DIR/"
 fi
@@ -40,4 +44,5 @@ iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns"
 cp "$ROOT_DIR/Packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
 
 chmod +x "$MACOS_DIR/VigClean"
+codesign --force --deep --sign - "$APP_DIR" >/dev/null
 echo "$APP_DIR"

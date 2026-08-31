@@ -1,5 +1,29 @@
 import Foundation
 
+final class OperationStepCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private let total: Double
+    private var completed = 0.0
+
+    init(total: Double) {
+        self.total = max(total, 1)
+    }
+
+    func fraction() -> Double {
+        lock.lock()
+        defer { lock.unlock() }
+        return min(completed / total, 1)
+    }
+
+    func advance() -> Double {
+        lock.lock()
+        completed += 1
+        let result = min(completed / total, 1)
+        lock.unlock()
+        return result
+    }
+}
+
 enum CleanupRisk: String, CaseIterable, Identifiable {
     case safe = "Safe"
     case review = "Review"
@@ -61,6 +85,46 @@ struct CleanupFinding: Identifiable, Hashable, Sendable {
 struct DeleteResult: Sendable {
     let deletedBytes: Int64
     let errors: [String]
+    let freeBytesBefore: Int64
+    let freeBytesAfter: Int64
+
+    var recoveredBytes: Int64 {
+        max(freeBytesAfter - freeBytesBefore, 0)
+    }
+}
+
+enum CleanupOperationKind: String, Codable, Sendable {
+    case cleanup
+    case uninstall
+    case diskCleanup
+}
+
+struct CleanupHistoryEntry: Identifiable, Codable, Hashable, Sendable {
+    let id: UUID
+    let date: Date
+    let kind: CleanupOperationKind
+    let title: String
+    let deletedBytes: Int64
+    let recoveredBytes: Int64
+    let freeBytesBefore: Int64
+    let freeBytesAfter: Int64
+    let itemCount: Int
+    let errorCount: Int
+    let permanent: Bool
+
+    init(date: Date = .now, kind: CleanupOperationKind, title: String, deletedBytes: Int64, recoveredBytes: Int64, freeBytesBefore: Int64, freeBytesAfter: Int64, itemCount: Int, errorCount: Int, permanent: Bool) {
+        self.id = UUID()
+        self.date = date
+        self.kind = kind
+        self.title = title
+        self.deletedBytes = deletedBytes
+        self.recoveredBytes = recoveredBytes
+        self.freeBytesBefore = freeBytesBefore
+        self.freeBytesAfter = freeBytesAfter
+        self.itemCount = itemCount
+        self.errorCount = errorCount
+        self.permanent = permanent
+    }
 }
 
 struct InstalledApp: Identifiable, Hashable, Sendable {
@@ -138,6 +202,7 @@ struct DiskAnalysisResult: Sendable {
 
 extension Int64 {
     var storageText: String {
+        if self == 0 { return "0 KB" }
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         formatter.allowedUnits = [.useKB, .useMB, .useGB, .useTB]

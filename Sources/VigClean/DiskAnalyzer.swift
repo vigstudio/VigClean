@@ -2,11 +2,21 @@ import Foundation
 
 struct DiskAnalyzer: Sendable {
     private let home = FileManager.default.homeDirectoryForCurrentUser
+    private let sizeCache = DiskDirectorySizeCache()
     private var fileManager: FileManager { .default }
 
-    func analyze(progress: @MainActor (String) -> Void = { _ in }) async -> DiskAnalysisResult {
-        await progress("Reading disk capacity...")
+    func analyze(progress: @MainActor (String, Double) -> Void = { _, _ in }) async -> DiskAnalysisResult {
+        let stepCounter = OperationStepCounter(total: 22)
+        @MainActor func report(_ message: String) {
+            progress(message, stepCounter.fraction())
+        }
+        @MainActor func advance(_ message: String) {
+            progress(message, stepCounter.advance())
+        }
+
+        await report("Reading disk capacity...")
         let volume = volumeSummary()
+        await advance("Disk capacity ready")
 
         var userCategories: [DiskCategorySummary] = []
         let userTargets = [
@@ -18,10 +28,12 @@ struct DiskAnalyzer: Sendable {
             ("Music", "Music libraries and audio files.", "~/Music", "mint")
         ]
         for target in userTargets {
-            await progress("Disk category • \(expand(target.2).path)")
+            if Task.isCancelled { break }
+            await report("Disk category • \(expand(target.2).path)")
             if let category = category(target.0, detail: target.1, path: target.2, color: target.3) {
                 userCategories.append(category)
             }
+            await advance("Finished \(target.0)")
             await Task.yield()
         }
         await Task.yield()
@@ -35,10 +47,12 @@ struct DiskAnalyzer: Sendable {
             ("Developer", "Xcode, simulator, SDK, and developer tool data.", "~/Library/Developer", "red")
         ]
         for target in libraryTargets {
-            await progress("Disk category • \(expand(target.2).path)")
+            if Task.isCancelled { break }
+            await report("Disk category • \(expand(target.2).path)")
             if let category = category(target.0, detail: target.1, path: target.2, color: target.3) {
                 libraryCategories.append(category)
             }
+            await advance("Finished \(target.0)")
             await Task.yield()
         }
         await Task.yield()
@@ -56,8 +70,10 @@ struct DiskAnalyzer: Sendable {
         ]
         var largeItems: [DiskUsageItem] = []
         for root in roots {
-            await progress("Largest items • \(expand(root).path)")
+            if Task.isCancelled { break }
+            await report("Largest items • \(expand(root).path)")
             largeItems.append(contentsOf: largeChildren(under: root, minimumBytes: 100 * 1024 * 1024))
+            await advance("Finished \(expand(root).lastPathComponent)")
             await Task.yield()
         }
         let items = largeItems
@@ -65,7 +81,7 @@ struct DiskAnalyzer: Sendable {
             .prefix(80)
             .map { $0 }
 
-        await progress("Disk analysis complete")
+        await advance("Disk analysis complete")
         return DiskAnalysisResult(
             volume: volume,
             categories: (userCategories + libraryCategories).sorted { $0.bytes > $1.bytes },
@@ -84,6 +100,7 @@ struct DiskAnalyzer: Sendable {
     }
 
     private func category(_ name: String, detail: String, path: String, color: String) -> DiskCategorySummary? {
+        guard !Task.isCancelled else { return nil }
         let url = expand(path)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         let bytes = directorySize(url)
@@ -92,6 +109,7 @@ struct DiskAnalyzer: Sendable {
     }
 
     private func largeChildren(under root: String, minimumBytes: Int64) -> [DiskUsageItem] {
+        guard !Task.isCancelled else { return [] }
         let rootURL = expand(root)
         guard fileManager.fileExists(atPath: rootURL.path),
               let children = try? fileManager.contentsOfDirectory(
@@ -210,11 +228,19 @@ struct DiskAnalyzer: Sendable {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
+        guard !Task.isCancelled else { return 0 }
+        let cacheKey = url.standardizedFileURL.path
+        if let cached = sizeCache.value(for: cacheKey) {
+            return cached
+        }
+
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return 0 }
 
         if !isDirectory.boolValue {
-            return fileSize(url)
+            let bytes = fileSize(url)
+            sizeCache.insert(bytes, for: cacheKey)
+            return bytes
         }
 
         guard let enumerator = fileManager.enumerator(
@@ -228,8 +254,10 @@ struct DiskAnalyzer: Sendable {
 
         var total: Int64 = 0
         for case let fileURL as URL in enumerator {
+            if Task.isCancelled { break }
             total += fileSize(fileURL)
         }
+        sizeCache.insert(total, for: cacheKey)
         return total
     }
 
@@ -246,5 +274,22 @@ struct DiskAnalyzer: Sendable {
 
         let attributes = try? fileManager.attributesOfItem(atPath: url.path)
         return attributes?[.size] as? Int64 ?? 0
+    }
+}
+
+private final class DiskDirectorySizeCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: Int64] = [:]
+
+    func value(for path: String) -> Int64? {
+        lock.lock()
+        defer { lock.unlock() }
+        return values[path]
+    }
+
+    func insert(_ value: Int64, for path: String) {
+        lock.lock()
+        values[path] = value
+        lock.unlock()
     }
 }

@@ -2,11 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${1:-0.0.1}"
+VERSION="${1:-0.0.2}"
 DIST_DIR="$ROOT_DIR/dist/$VERSION"
 BUILD_APPS_DIR="$ROOT_DIR/build/release-$VERSION"
 ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
 SOURCE_ICON="$ROOT_DIR/Sources/VigClean/Resources/VigCleanLogo.png"
+SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 
 cd "$ROOT_DIR"
 
@@ -43,18 +44,21 @@ copy_bundle_resources() {
 }
 
 create_app() {
-  local name="$1"
+  local variant="$1"
   local binary="$2"
   local source_build_dir="$3"
-  local app_dir="$BUILD_APPS_DIR/$name.app"
+  local app_dir="$BUILD_APPS_DIR/$variant/VigClean.app"
   local contents_dir="$app_dir/Contents"
   local macos_dir="$contents_dir/MacOS"
   local resources_dir="$contents_dir/Resources"
+  local frameworks_dir="$contents_dir/Frameworks"
 
   rm -rf "$app_dir"
-  mkdir -p "$macos_dir" "$resources_dir"
+  mkdir -p "$macos_dir" "$resources_dir" "$frameworks_dir"
 
   cp "$binary" "$macos_dir/VigClean"
+  ditto "$SPARKLE_FRAMEWORK" "$frameworks_dir/Sparkle.framework"
+  install_name_tool -add_rpath "@loader_path/../Frameworks" "$macos_dir/VigClean"
   cp "$ROOT_DIR/Packaging/Info.plist" "$contents_dir/Info.plist"
   copy_bundle_resources "$source_build_dir" "$resources_dir"
   chmod +x "$macos_dir/VigClean"
@@ -92,15 +96,15 @@ UNIVERSAL_BINARY="$BUILD_APPS_DIR/VigClean-universal"
 create_icon
 
 echo "Creating app bundles..."
-create_app "VigClean-$VERSION-arm64" "$ARM_BINARY" "$ARM_BUILD_DIR"
-create_app "VigClean-$VERSION-x86_64" "$INTEL_BINARY" "$INTEL_BUILD_DIR"
+create_app "arm64" "$ARM_BINARY" "$ARM_BUILD_DIR"
+create_app "x86_64" "$INTEL_BINARY" "$INTEL_BUILD_DIR"
 lipo -create "$ARM_BINARY" "$INTEL_BINARY" -output "$UNIVERSAL_BINARY"
-create_app "VigClean-$VERSION-universal" "$UNIVERSAL_BINARY" "$ARM_BUILD_DIR"
+create_app "universal" "$UNIVERSAL_BINARY" "$ARM_BUILD_DIR"
 
 echo "Creating ZIP and DMG assets..."
-package_app "$BUILD_APPS_DIR/VigClean-$VERSION-arm64.app" "VigClean-$VERSION-arm64"
-package_app "$BUILD_APPS_DIR/VigClean-$VERSION-x86_64.app" "VigClean-$VERSION-x86_64"
-package_app "$BUILD_APPS_DIR/VigClean-$VERSION-universal.app" "VigClean-$VERSION-universal"
+package_app "$BUILD_APPS_DIR/arm64/VigClean.app" "VigClean-$VERSION-arm64"
+package_app "$BUILD_APPS_DIR/x86_64/VigClean.app" "VigClean-$VERSION-x86_64"
+package_app "$BUILD_APPS_DIR/universal/VigClean.app" "VigClean-$VERSION-universal"
 
 shasum -a 256 "$DIST_DIR"/* > "$DIST_DIR/SHA256SUMS.txt"
 

@@ -17,14 +17,26 @@
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.0.1</string>
+  <string>0.0.2</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>2</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
+  <key>SUFeedURL</key>
+  <string>https://raw.githubusercontent.com/vigstudio/VigClean/main/appcast.xml</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
+  <key>SUAutomaticallyUpdate</key>
+  <true/>
+  <key>SUAllowsAutomaticUpdates</key>
+  <true/>
+  <key>SUVerifyUpdateBeforeExtraction</key>
+  <true/>
+  <key>SUPublicEDKey</key>
+  <string>SHizBAYKRy2d7UsYlr8G3/aaEe9qJcSX1nCg7Tc3pR8=</string>
 </dict>
 </plist>

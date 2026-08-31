@@ -6,7 +6,7 @@ final class CleanerViewModel: ObservableObject {
     @Published private(set) var findings: [CleanupFinding] = []
     @Published var selectedIDs: Set<CleanupFinding.ID> = []
     @Published var selectedPathIDs: Set<CleanupPathEntry.ID> = []
-    @Published var permanentlyDelete = true
+    @Published var permanentlyDelete = false
     @Published var terminateAffectedApps = false
     @Published var requestAdminWhenNeeded = true
     @Published private(set) var isScanning = false
@@ -16,6 +16,7 @@ final class CleanerViewModel: ObservableObject {
     @Published private(set) var hasScannedDisk = false
     @Published private(set) var status = "Ready"
     @Published private(set) var progressDetail = ""
+    @Published private(set) var operationProgress: Double?
     @Published private(set) var lastErrors: [String] = []
     @Published var filterText = ""
     @Published private(set) var installedApps: [InstalledApp] = []
@@ -26,7 +27,23 @@ final class CleanerViewModel: ObservableObject {
     @Published private(set) var isScanningDisk = false
     @Published private(set) var diskAnalysis: DiskAnalysisResult?
     @Published var selectedDiskItemIDs: Set<DiskUsageItem.ID> = []
+    @Published private(set) var protectedPaths: Set<String> = []
+    @Published private(set) var cleanupHistory: [CleanupHistoryEntry] = []
     @Published private var appPathSelections: [String: Set<CleanupPathEntry.ID>] = [:]
+
+    private let protectedPathsKey = "VigClean.protectedPaths"
+    private let cleanupHistoryKey = "VigClean.cleanupHistory"
+    private var cleanupScanTask: Task<Void, Never>?
+    private var appScanTask: Task<Void, Never>?
+    private var diskScanTask: Task<Void, Never>?
+
+    init() {
+        protectedPaths = Set(UserDefaults.standard.stringArray(forKey: protectedPathsKey) ?? [])
+        if let data = UserDefaults.standard.data(forKey: cleanupHistoryKey),
+           let entries = try? JSONDecoder().decode([CleanupHistoryEntry].self, from: data) {
+            cleanupHistory = entries
+        }
+    }
 
     func t(_ key: String) -> String {
         L10n.text(key, language)
@@ -34,7 +51,9 @@ final class CleanerViewModel: ObservableObject {
 
     var selectedFindings: [CleanupFinding] {
         findings.compactMap { finding in
-            let entries = finding.pathEntries.flatMap { minimalSelectedEntries($0, selectedIDs: selectedPathIDs) }
+            let entries = finding.pathEntries
+                .flatMap { minimalSelectedEntries($0, selectedIDs: selectedPathIDs) }
+                .filter { !isProtected($0) }
             guard !entries.isEmpty else { return nil }
             return finding.withPathEntries(entries)
         }
@@ -57,6 +76,14 @@ final class CleanerViewModel: ObservableObject {
             .flatMap(\.flattened)
             .filter { selectedPathIDs.contains($0.id) }
             .reduce(Int64(0)) { $0 + $1.bytes }
+    }
+
+    var selectedItemCount: Int {
+        selectedFindings.reduce(0) { $0 + $1.pathEntries.count }
+    }
+
+    var selectedRiskCount: Int {
+        selectedFindings.filter { $0.risk != .safe }.count
     }
 
     var totalBytes: Int64 {
@@ -87,13 +114,16 @@ final class CleanerViewModel: ObservableObject {
         isScanning = true
         status = "Scanning..."
         progressDetail = "Preparing scan..."
+        operationProgress = 0
         lastErrors = []
 
-        Task {
+        cleanupScanTask = Task {
             let includePrivacySensitiveScan = includePrivacySensitiveScan
-            let nextFindings = await CleanupScanner().scan(includePrivacySensitiveFolders: includePrivacySensitiveScan) { [weak self] message in
+            let nextFindings = await CleanupScanner().scan(includePrivacySensitiveFolders: includePrivacySensitiveScan) { [weak self] message, fraction in
                 self?.progressDetail = message
+                self?.operationProgress = fraction
             }
+            guard !Task.isCancelled else { return }
             findings = nextFindings
             selectedIDs = Set(nextFindings.filter(\.selectedByDefault).map(\.id))
             selectedPathIDs = Set(nextFindings.filter(\.selectedByDefault).flatMap(\.pathEntries).flatMap(\.flattened).map(\.id))
@@ -101,6 +131,7 @@ final class CleanerViewModel: ObservableObject {
             progressDetail = "Scan complete"
             hasScannedClean = true
             isScanning = false
+            operationProgress = nil
         }
     }
 
@@ -109,17 +140,21 @@ final class CleanerViewModel: ObservableObject {
         isScanningApps = true
         status = "Scanning apps..."
         progressDetail = "Preparing app scan..."
+        operationProgress = 0
         lastErrors = []
 
-        Task {
-            let apps = await CleanupScanner().scanInstalledApps { [weak self] message in
+        appScanTask = Task {
+            let apps = await CleanupScanner().scanInstalledApps { [weak self] message, fraction in
                 self?.progressDetail = message
+                self?.operationProgress = fraction
             }
+            guard !Task.isCancelled else { return }
             installedApps = apps
             status = apps.isEmpty ? "No installed apps found" : "Found \(apps.count) installed apps"
             progressDetail = "App scan complete"
             hasScannedApps = true
             isScanningApps = false
+            operationProgress = nil
         }
     }
 
@@ -128,19 +163,38 @@ final class CleanerViewModel: ObservableObject {
         isScanningDisk = true
         status = "Analyzing disk..."
         progressDetail = "Preparing disk analysis..."
+        operationProgress = 0
         lastErrors = []
 
-        Task {
-            let result = await DiskAnalyzer().analyze { [weak self] message in
+        diskScanTask = Task {
+            let result = await DiskAnalyzer().analyze { [weak self] message, fraction in
                 self?.progressDetail = message
+                self?.operationProgress = fraction
             }
+            guard !Task.isCancelled else { return }
             diskAnalysis = result
             selectedDiskItemIDs.removeAll()
             hasScannedDisk = true
             status = "Disk analysis complete"
             progressDetail = "\(result.volume.freeBytes.storageText) free of \(result.volume.totalBytes.storageText)"
             isScanningDisk = false
+            operationProgress = nil
         }
+    }
+
+    func cancelCurrentScan() {
+        cleanupScanTask?.cancel()
+        appScanTask?.cancel()
+        diskScanTask?.cancel()
+        cleanupScanTask = nil
+        appScanTask = nil
+        diskScanTask = nil
+        isScanning = false
+        isScanningApps = false
+        isScanningDisk = false
+        operationProgress = nil
+        status = "Scan cancelled"
+        progressDetail = "No files were changed"
     }
 
     func cleanSelected() {
@@ -149,11 +203,14 @@ final class CleanerViewModel: ObservableObject {
         isCleaning = true
         status = "Cleaning \(targets.count) selected targets..."
         progressDetail = "Deleting selected paths..."
+        operationProgress = 0
         lastErrors = []
 
         let permanentlyDelete = permanentlyDelete
         let terminateAffectedApps = terminateAffectedApps
         let requestAdminWhenNeeded = requestAdminWhenNeeded
+        let protectedPaths = protectedPaths
+        let itemCount = targets.flatMap(\.pathEntries).count
 
         Task {
             let result = await Task.detached {
@@ -161,7 +218,12 @@ final class CleanerViewModel: ObservableObject {
                     targets,
                     permanently: permanentlyDelete,
                     terminateAffectedApps: terminateAffectedApps,
-                    requestAdminWhenNeeded: requestAdminWhenNeeded
+                    requestAdminWhenNeeded: requestAdminWhenNeeded,
+                    protectedPaths: protectedPaths,
+                    progress: { [weak self] path, fraction in
+                    self?.progressDetail = path
+                    self?.operationProgress = fraction
+                    }
                 )
             }.value
             lastErrors = result.errors
@@ -170,6 +232,18 @@ final class CleanerViewModel: ObservableObject {
                 : "Cleaned \(result.deletedBytes.storageText), with \(result.errors.count) errors"
             progressDetail = "Clean complete"
             isCleaning = false
+            operationProgress = nil
+            recordHistory(CleanupHistoryEntry(
+                kind: .cleanup,
+                title: "Smart cleanup",
+                deletedBytes: result.deletedBytes,
+                recoveredBytes: result.recoveredBytes,
+                freeBytesBefore: result.freeBytesBefore,
+                freeBytesAfter: result.freeBytesAfter,
+                itemCount: itemCount,
+                errorCount: result.errors.count,
+                permanent: permanentlyDelete
+            ))
             if hasScannedClean {
                 scan()
             }
@@ -181,17 +255,22 @@ final class CleanerViewModel: ObservableObject {
         isCleaning = true
         status = "Uninstalling \(app.name)..."
         progressDetail = "Preparing uninstall paths..."
+        operationProgress = 0
         lastErrors = []
 
         let entries = selectedEntries(for: app)
         guard !entries.isEmpty else {
             status = "No paths selected for \(app.name)"
+            progressDetail = "Nothing was changed"
+            operationProgress = nil
+            isCleaning = false
             return
         }
 
         let finding = app.cleanupFinding.withPathEntries(entries)
         let permanentlyDelete = permanentlyDelete
         let requestAdminWhenNeeded = requestAdminWhenNeeded
+        let protectedPaths = protectedPaths
 
         Task {
             let result = await Task.detached {
@@ -199,7 +278,12 @@ final class CleanerViewModel: ObservableObject {
                     [finding],
                     permanently: permanentlyDelete,
                     terminateAffectedApps: true,
-                    requestAdminWhenNeeded: requestAdminWhenNeeded
+                    requestAdminWhenNeeded: requestAdminWhenNeeded,
+                    protectedPaths: protectedPaths,
+                    progress: { [weak self] path, fraction in
+                        self?.progressDetail = path
+                        self?.operationProgress = fraction
+                    }
                 )
             }.value
             lastErrors = result.errors
@@ -208,6 +292,18 @@ final class CleanerViewModel: ObservableObject {
                 : "Uninstalled \(app.name) with \(result.errors.count) errors"
             progressDetail = "Uninstall complete"
             isCleaning = false
+            operationProgress = nil
+            recordHistory(CleanupHistoryEntry(
+                kind: .uninstall,
+                title: app.name,
+                deletedBytes: result.deletedBytes,
+                recoveredBytes: result.recoveredBytes,
+                freeBytesBefore: result.freeBytesBefore,
+                freeBytesAfter: result.freeBytesAfter,
+                itemCount: entries.count,
+                errorCount: result.errors.count,
+                permanent: permanentlyDelete
+            ))
             if hasScannedApps {
                 scanApps()
             }
@@ -215,7 +311,7 @@ final class CleanerViewModel: ObservableObject {
     }
 
     func toggle(_ finding: CleanupFinding) {
-        let ids = Set(finding.pathEntries.flatMap(\.flattened).map(\.id))
+        let ids = Set(finding.pathEntries.flatMap(\.flattened).filter { !isProtected($0) }.map(\.id))
         if ids.isSubset(of: selectedPathIDs) {
             selectedIDs.remove(finding.id)
             selectedPathIDs.subtract(ids)
@@ -226,6 +322,7 @@ final class CleanerViewModel: ObservableObject {
     }
 
     func togglePath(_ entry: CleanupPathEntry, in finding: CleanupFinding) {
+        guard !isProtected(entry) else { return }
         let ids = Set(entry.flattened.map(\.id))
         if ids.isSubset(of: selectedPathIDs) {
             selectedPathIDs.subtract(ids)
@@ -246,14 +343,68 @@ final class CleanerViewModel: ObservableObject {
         Set(entry.flattened.map(\.id)).isSubset(of: selectedPathIDs)
     }
 
+    func isProtected(_ entry: CleanupPathEntry) -> Bool {
+        isPathProtected(entry.url)
+    }
+
+    func isPathProtected(_ url: URL) -> Bool {
+        let path = url.standardizedFileURL.path
+        return protectedPaths.contains { protected in
+            path == protected || path.hasPrefix(protected + "/")
+        }
+    }
+
+    func toggleProtection(_ entry: CleanupPathEntry) {
+        let path = entry.url.standardizedFileURL.path
+        if protectedPaths.contains(path) {
+            protectedPaths.remove(path)
+        } else {
+            protectedPaths.insert(path)
+            selectedPathIDs.subtract(entry.flattened.map(\.id))
+        }
+        refreshFindingSelectionState()
+        UserDefaults.standard.set(protectedPaths.sorted(), forKey: protectedPathsKey)
+    }
+
+    func removeProtectedPath(_ path: String) {
+        protectedPaths.remove(path)
+        UserDefaults.standard.set(protectedPaths.sorted(), forKey: protectedPathsKey)
+    }
+
+    func clearHistory() {
+        cleanupHistory.removeAll()
+        UserDefaults.standard.removeObject(forKey: cleanupHistoryKey)
+    }
+
     func selectAllSafe() {
         selectedIDs = Set(findings.filter { $0.risk != .personal }.map(\.id))
-        selectedPathIDs = Set(findings.filter { $0.risk != .personal }.flatMap(\.pathEntries).flatMap(\.flattened).map(\.id))
+        selectedPathIDs = Set(
+            findings
+                .filter { $0.risk != .personal }
+                .flatMap(\.pathEntries)
+                .flatMap(\.flattened)
+                .filter { !isProtected($0) }
+                .map(\.id)
+        )
     }
 
     func clearSelection() {
         selectedIDs.removeAll()
         selectedPathIDs.removeAll()
+    }
+
+    private func refreshFindingSelectionState() {
+        for finding in findings {
+            let selectableIDs = Set(
+                finding.pathEntries
+                    .flatMap(\.flattened)
+                    .filter { !isProtected($0) }
+                    .map(\.id)
+            )
+            if selectableIDs.isEmpty || !selectableIDs.isSubset(of: selectedPathIDs) {
+                selectedIDs.remove(finding.id)
+            }
+        }
     }
 
     func toggleDiskItem(_ item: DiskUsageItem) {
@@ -274,6 +425,7 @@ final class CleanerViewModel: ObservableObject {
         isCleaning = true
         status = "Deleting disk analysis selections..."
         progressDetail = "Deleting \(selectedDiskItems.count) selected items..."
+        operationProgress = 0
         lastErrors = []
 
         let findings = selectedDiskItems.map { item in
@@ -291,6 +443,8 @@ final class CleanerViewModel: ObservableObject {
         let permanentlyDelete = permanentlyDelete
         let terminateAffectedApps = terminateAffectedApps
         let requestAdminWhenNeeded = requestAdminWhenNeeded
+        let protectedPaths = protectedPaths
+        let itemCount = findings.count
 
         Task {
             let result = await Task.detached {
@@ -298,7 +452,12 @@ final class CleanerViewModel: ObservableObject {
                     findings,
                     permanently: permanentlyDelete,
                     terminateAffectedApps: terminateAffectedApps,
-                    requestAdminWhenNeeded: requestAdminWhenNeeded
+                    requestAdminWhenNeeded: requestAdminWhenNeeded,
+                    protectedPaths: protectedPaths,
+                    progress: { [weak self] path, fraction in
+                        self?.progressDetail = path
+                        self?.operationProgress = fraction
+                    }
                 )
             }.value
             lastErrors = result.errors
@@ -307,13 +466,25 @@ final class CleanerViewModel: ObservableObject {
                 : "Deleted \(result.deletedBytes.storageText), with \(result.errors.count) errors"
             progressDetail = "Disk cleanup complete"
             isCleaning = false
+            operationProgress = nil
+            recordHistory(CleanupHistoryEntry(
+                kind: .diskCleanup,
+                title: "Disk cleanup",
+                deletedBytes: result.deletedBytes,
+                recoveredBytes: result.recoveredBytes,
+                freeBytesBefore: result.freeBytesBefore,
+                freeBytesAfter: result.freeBytesAfter,
+                itemCount: itemCount,
+                errorCount: result.errors.count,
+                permanent: permanentlyDelete
+            ))
             analyzeDisk()
         }
     }
 
     func selectedEntries(for app: InstalledApp) -> [CleanupPathEntry] {
         let selected = appPathSelections[app.appURL.path] ?? Set(app.relatedEntries.flatMap(\.flattened).map(\.id))
-        return app.relatedEntries.flatMap { minimalSelectedEntries($0, selectedIDs: selected) }
+        return app.relatedEntries.flatMap { minimalSelectedEntries($0, selectedIDs: selected) }.filter { !isProtected($0) }
     }
 
     func isAppPathSelected(_ entry: CleanupPathEntry, app: InstalledApp) -> Bool {
@@ -354,6 +525,14 @@ final class CleanerViewModel: ObservableObject {
             } else {
                 selectedIDs.remove(entry.id)
             }
+        }
+    }
+
+    private func recordHistory(_ entry: CleanupHistoryEntry) {
+        cleanupHistory.insert(entry, at: 0)
+        cleanupHistory = Array(cleanupHistory.prefix(100))
+        if let data = try? JSONEncoder().encode(cleanupHistory) {
+            UserDefaults.standard.set(data, forKey: cleanupHistoryKey)
         }
     }
 

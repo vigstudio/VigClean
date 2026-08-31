@@ -6,29 +6,32 @@ struct CleanerView: View {
     @State private var selectedTab: AppTab = .clean
 
     var body: some View {
-        VStack(spacing: 0) {
-            appHeader
-            TabView(selection: $selectedTab) {
-                CleanTab(model: model)
-                    .tabItem {
-                        Label(model.t("clean"), systemImage: "sparkles")
-                    }
-                    .tag(AppTab.clean)
+        HStack(spacing: 0) {
+            AppSidebar(model: model, selectedTab: $selectedTab)
+                .frame(width: 208)
 
-                AppsTab(model: model)
-                    .tabItem {
-                        Label(model.t("apps"), systemImage: "square.grid.2x2")
-                    }
-                    .tag(AppTab.apps)
+            Divider()
 
-                DiskTab(model: model)
-                    .tabItem {
-                        Label(model.t("disk"), systemImage: "chart.pie")
+            VStack(spacing: 0) {
+                pageHeader
+                Divider()
+
+                Group {
+                    switch selectedTab {
+                    case .clean:
+                        CleanTab(model: model)
+                    case .apps:
+                        AppsTab(model: model)
+                    case .disk:
+                        DiskTab(model: model)
+                    case .history:
+                        HistoryTab(model: model)
                     }
-                    .tag(AppTab.disk)
+                }
             }
         }
         .background(AppTheme.background)
+        .tint(AppTheme.accent)
         .onChange(of: selectedTab) { _, nextTab in
             if nextTab == .apps, !model.hasScannedApps {
                 model.scanApps()
@@ -36,46 +39,69 @@ struct CleanerView: View {
         }
     }
 
-    private var appHeader: some View {
+    private var pageHeader: some View {
         HStack(spacing: 16) {
-            LogoView()
-                .frame(width: 72, height: 72)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(model.status)
-                    .font(.callout)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(pageTitle)
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                Text(pageSubtitle)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                if !model.progressDetail.isEmpty {
-                    HStack(spacing: 8) {
-                        if model.isScanning || model.isScanningApps || model.isScanningDisk || model.isCleaning {
-                            ProgressView()
-                                .controlSize(.small)
-                                .scaleEffect(0.72)
-                        }
-                        Text(model.progressDetail)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 10) {
-                LanguageMenu(language: $model.language)
-
-                HStack(spacing: 12) {
-                    MetricPill(title: model.t("selected"), value: model.selectedBytes.storageText, systemImage: "checkmark.circle")
-                    MetricPill(title: model.t("found"), value: model.totalBytes.storageText, systemImage: "internaldrive")
+            if model.isScanning || model.isScanningApps || model.isScanningDisk || model.isCleaning {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(model.status)
+                        .font(.caption.weight(.medium))
+                    if let progress = model.operationProgress {
+                        Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(AppTheme.accent)
+                    }
+                    if !model.isCleaning {
+                        Button {
+                            model.cancelCurrentScan()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption.weight(.bold))
+                                .frame(width: 18, height: 18)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Cancel scan")
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(AppTheme.accent.opacity(0.1), in: Capsule())
             }
+
+            LanguageMenu(language: $model.language)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 18)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 22)
+        .frame(height: 72)
         .background(AppTheme.header)
+    }
+
+    private var pageTitle: String {
+        switch selectedTab {
+        case .clean: model.t("cleanTitle")
+        case .apps: model.t("appsTitle")
+        case .disk: model.t("diskTitle")
+        case .history: model.t("historyTitle")
+        }
+    }
+
+    private var pageSubtitle: String {
+        switch selectedTab {
+        case .clean: model.t("cleanSubtitle")
+        case .apps: model.t("appsSubtitle")
+        case .disk: model.t("diskSubtitle")
+        case .history: model.t("historySubtitle")
+        }
     }
 }
 
@@ -83,6 +109,86 @@ private enum AppTab: Hashable {
     case clean
     case apps
     case disk
+    case history
+}
+
+private struct AppSidebar: View {
+    @ObservedObject var model: CleanerViewModel
+    @Binding var selectedTab: AppTab
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                LogoView()
+                    .frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("VigClean")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                    Text(model.t("macCleaner"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 18)
+            .padding(.bottom, 24)
+
+            VStack(spacing: 6) {
+                SidebarButton(title: model.t("clean"), systemImage: "sparkles", tab: .clean, selection: $selectedTab)
+                SidebarButton(title: model.t("apps"), systemImage: "square.grid.2x2", tab: .apps, selection: $selectedTab)
+                SidebarButton(title: model.t("disk"), systemImage: "chart.pie", tab: .disk, selection: $selectedTab)
+                SidebarButton(title: model.t("history"), systemImage: "clock.arrow.circlepath", tab: .history, selection: $selectedTab)
+            }
+            .padding(.horizontal, 10)
+
+            Spacer()
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .foregroundStyle(AppTheme.accent)
+                    Text(model.t("localOnly"))
+                        .font(.caption.weight(.medium))
+                }
+                Text(model.t("localOnlyDetail"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+            .padding(12)
+        }
+        .background(AppTheme.sidebar)
+    }
+}
+
+private struct SidebarButton: View {
+    let title: String
+    let systemImage: String
+    let tab: AppTab
+    @Binding var selection: AppTab
+
+    var body: some View {
+        Button {
+            selection = tab
+        } label: {
+            HStack(spacing: 11) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 20)
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+            }
+            .foregroundStyle(selection == tab ? Color.white : Color.primary)
+            .padding(.horizontal, 12)
+            .frame(height: 42)
+            .background(selection == tab ? AppTheme.accent : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 }
 
 private struct LogoView: View {
@@ -140,12 +246,20 @@ private struct LanguageMenu: View {
 
 private struct CleanTab: View {
     @ObservedObject var model: CleanerViewModel
+    @State private var confirmCleanup = false
 
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
+                if model.hasScannedClean {
+                    CleanupOverview(model: model)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 16)
+                }
+
                 HStack(spacing: 12) {
                     SearchBar(text: $model.filterText, placeholder: model.t("filterCleanup"))
+                        .frame(maxWidth: 440)
 
                     Button {
                         model.scan()
@@ -156,23 +270,28 @@ private struct CleanTab: View {
                     .buttonStyle(PrimaryUtilityButtonStyle())
                     .disabled(model.isScanning || model.isCleaning)
 
-                    Button(role: .destructive) {
-                        model.cleanSelected()
-                    } label: {
-                        Label(model.permanentlyDelete ? model.t("deleteSelected") : model.t("moveTrash"), systemImage: "trash")
-                            .frame(minWidth: 150)
+                    Spacer()
+
+                    Button(model.t("selectRecommended"), systemImage: "checklist") {
+                        model.selectAllSafe()
                     }
-                    .buttonStyle(DestructiveUtilityButtonStyle())
-                    .disabled(model.selectedIDs.isEmpty || model.isScanning || model.isCleaning)
+                    .buttonStyle(.borderless)
+
+                    Button(model.t("clearSelection"), systemImage: "xmark.circle") {
+                        model.clearSelection()
+                    }
+                    .buttonStyle(.borderless)
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
 
-                if model.isScanning {
+                if model.isScanning || model.isCleaning {
                     ScanProgressStrip(
                         title: model.status,
                         detail: model.progressDetail.isEmpty ? "Preparing scan..." : model.progressDetail,
-                        systemImage: "magnifyingglass"
+                        systemImage: model.isCleaning ? "trash" : "magnifyingglass",
+                        progress: model.operationProgress,
+                        onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
                     )
                     .padding(.horizontal, 18)
                     .padding(.bottom, 10)
@@ -184,14 +303,20 @@ private struct CleanTab: View {
                             finding: finding,
                             isSelected: model.selectedIDs.contains(finding.id),
                             isPathSelected: { model.isSelected($0) },
+                            isPathProtected: { model.isProtected($0) },
                             onToggle: { model.toggle(finding) },
                             onTogglePath: { model.togglePath($0, in: finding) },
+                            onToggleProtection: { model.toggleProtection($0) },
                             language: model.language
                         )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
+                        .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
                 }
-                .listStyle(.inset)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.background)
                 .overlay {
                     if !model.hasScannedClean && !model.isScanning {
                         EmptyStateCard(
@@ -203,9 +328,83 @@ private struct CleanTab: View {
                 }
             }
 
-            UtilityPanel(model: model)
-                .frame(width: 320)
+            UtilityPanel(model: model) {
+                confirmCleanup = true
+            }
+            .frame(width: 292)
         }
+        .confirmationDialog(
+            model.permanentlyDelete ? model.t("confirmPermanentTitle") : model.t("confirmTrashTitle"),
+            isPresented: $confirmCleanup,
+            titleVisibility: .visible
+        ) {
+            Button(
+                model.permanentlyDelete ? model.t("deleteSelected") : model.t("moveTrash"),
+                role: .destructive,
+                action: model.cleanSelected
+            )
+            Button(model.t("cancel"), role: .cancel) {}
+        } message: {
+            Text(model.t("confirmCleanupMessage")
+                .replacingOccurrences(of: "%count%", with: "\(model.selectedItemCount)")
+                .replacingOccurrences(of: "%size%", with: model.selectedBytes.storageText)
+                .replacingOccurrences(of: "%risk%", with: "\(model.selectedRiskCount)"))
+        }
+    }
+}
+
+private struct CleanupOverview: View {
+    @ObservedObject var model: CleanerViewModel
+
+    var body: some View {
+        HStack(spacing: 0) {
+            OverviewMetric(
+                title: model.t("recoverable"),
+                value: model.totalBytes.storageText,
+                systemImage: "internaldrive"
+            )
+            Divider().frame(height: 34)
+            OverviewMetric(
+                title: model.t("selected"),
+                value: model.selectedBytes.storageText,
+                systemImage: "checkmark.circle.fill"
+            )
+            Divider().frame(height: 34)
+            OverviewMetric(
+                title: model.t("cleanupGroups"),
+                value: "\(model.findings.count)",
+                systemImage: "square.stack.3d.up.fill"
+            )
+        }
+        .frame(height: 68)
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppTheme.border, lineWidth: 1))
+    }
+}
+
+private struct OverviewMetric: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.accent)
+                .frame(width: 28, height: 28)
+                .background(AppTheme.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
+            }
+            Spacer(minLength: 12)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -213,19 +412,17 @@ private struct ScanProgressStrip: View {
     let title: String
     let detail: String
     let systemImage: String
+    let progress: Double?
+    let onCancel: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
-            ProgressView()
-                .controlSize(.small)
-                .frame(width: 18, height: 18)
-
             Image(systemName: systemImage)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -234,16 +431,37 @@ private struct ScanProgressStrip: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if let progress {
+                    ProgressView(value: progress, total: 1)
+                        .progressViewStyle(.linear)
+                } else {
+                    ProgressView()
+                        .progressViewStyle(.linear)
+                }
             }
 
-            Spacer()
+            if let progress {
+                Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.system(.headline, design: .rounded).monospacedDigit())
+                    .foregroundStyle(AppTheme.accent)
+                    .frame(width: 52, alignment: .trailing)
+            }
+
+            if let onCancel {
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.borderless)
+                .help("Cancel scan")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(AppTheme.control, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+                .stroke(AppTheme.accent.opacity(0.18), lineWidth: 1)
         )
     }
 }
@@ -299,11 +517,13 @@ private struct AppsTab: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
 
-            if model.isScanningApps {
+            if model.isScanningApps || model.isCleaning {
                 ScanProgressStrip(
                     title: model.status,
                     detail: model.progressDetail.isEmpty ? "Preparing app scan..." : model.progressDetail,
-                    systemImage: "square.grid.2x2"
+                    systemImage: model.isCleaning ? "trash" : "square.grid.2x2",
+                    progress: model.operationProgress,
+                    onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
@@ -341,6 +561,105 @@ private struct AppsTab: View {
     }
 }
 
+private struct HistoryTab: View {
+    @ObservedObject var model: CleanerViewModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("\(model.cleanupHistory.count) \(model.t("operations"))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(model.t("clearHistory"), systemImage: "trash") {
+                    model.clearHistory()
+                }
+                .buttonStyle(.borderless)
+                .disabled(model.cleanupHistory.isEmpty)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
+
+            if model.cleanupHistory.isEmpty {
+                Spacer()
+                EmptyStateCard(
+                    systemImage: "clock.arrow.circlepath",
+                    title: model.t("noHistory"),
+                    detail: model.t("noHistoryDetail")
+                )
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(model.cleanupHistory) { entry in
+                            HistoryRow(entry: entry, language: model.language)
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+        }
+        .background(AppTheme.background)
+    }
+}
+
+private struct HistoryRow: View {
+    let entry: CleanupHistoryEntry
+    let language: AppLanguage
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(entry.errorCount == 0 ? AppTheme.accent : .orange)
+                .frame(width: 38, height: 38)
+                .background((entry.errorCount == 0 ? AppTheme.accent : Color.orange).opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.title)
+                    .font(.subheadline.weight(.semibold))
+                Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(entry.deletedBytes.storageText)
+                    .font(.system(.headline, design: .rounded).monospacedDigit())
+                Text("\(entry.itemCount) \(L10n.text("items", language)) • \(entry.permanent ? L10n.text("permanent", language) : L10n.text("trash", language))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if entry.recoveredBytes > 0 {
+                    Text("+\(entry.recoveredBytes.storageText) \(L10n.text("recovered", language))")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                }
+            }
+
+            if entry.errorCount > 0 {
+                Text("\(entry.errorCount)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.orange)
+                    .padding(6)
+                    .background(Color.orange.opacity(0.12), in: Circle())
+            }
+        }
+        .padding(14)
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppTheme.border, lineWidth: 1))
+    }
+
+    private var icon: String {
+        switch entry.kind {
+        case .cleanup: "sparkles"
+        case .uninstall: "app.badge.checkmark"
+        case .diskCleanup: "internaldrive"
+        }
+    }
+}
+
 private struct DiskTab: View {
     @ObservedObject var model: CleanerViewModel
 
@@ -372,11 +691,13 @@ private struct DiskTab: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
 
-            if model.isScanningDisk {
+            if model.isScanningDisk || model.isCleaning {
                 ScanProgressStrip(
                     title: model.status,
                     detail: model.progressDetail.isEmpty ? "Preparing disk analysis..." : model.progressDetail,
-                    systemImage: "chart.pie"
+                    systemImage: model.isCleaning ? "trash" : "chart.pie",
+                    progress: model.operationProgress,
+                    onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
@@ -747,9 +1068,42 @@ private struct AppCard: View {
 
 private struct UtilityPanel: View {
     @ObservedObject var model: CleanerViewModel
+    let onClean: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.t("reviewAndClean"))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                Text(model.t("reviewAndCleanDetail"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                Image(systemName: model.selectedRiskCount == 0 ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                    .font(.title2)
+                    .foregroundStyle(model.selectedRiskCount == 0 ? AppTheme.accent : .orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model.selectedBytes.storageText)
+                        .font(.system(size: 20, weight: .semibold, design: .rounded).monospacedDigit())
+                    Text("\(model.selectedItemCount) \(model.t("itemsSelected"))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppTheme.border, lineWidth: 1))
+
+            Button(role: .destructive, action: onClean) {
+                Label(model.permanentlyDelete ? model.t("deleteSelected") : model.t("moveTrash"), systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(DestructiveUtilityButtonStyle())
+            .disabled(model.selectedFindings.isEmpty || model.isScanning || model.isCleaning)
+
             VStack(alignment: .leading, spacing: 10) {
                 Text(model.t("options"))
                     .font(.headline)
@@ -760,39 +1114,54 @@ private struct UtilityPanel: View {
                 Toggle(model.t("scanPrivateFolders"), isOn: $model.includePrivacySensitiveScan)
             }
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(model.t("selection"))
-                    .font(.headline)
-
-                HStack(spacing: 10) {
-                    Button {
-                        model.selectAllSafe()
-                    } label: {
-                        Label(model.t("selectRecommended"), systemImage: "checklist")
-                            .frame(maxWidth: .infinity)
+            if !model.protectedPaths.isEmpty {
+                DisclosureGroup {
+                    VStack(spacing: 7) {
+                        ForEach(model.protectedPaths.sorted().prefix(5), id: \.self) { path in
+                            HStack(spacing: 6) {
+                                Image(systemName: "shield.fill")
+                                    .foregroundStyle(AppTheme.accent)
+                                Text(path)
+                                    .font(.caption2)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                Button {
+                                    model.removeProtectedPath(path)
+                                } label: {
+                                    Image(systemName: "xmark")
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                        if model.protectedPaths.count > 5 {
+                            Text("+\(model.protectedPaths.count - 5) \(model.t("moreProtected"))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .buttonStyle(CompactUtilityButtonStyle())
-
-                    Button {
-                        model.clearSelection()
-                    } label: {
-                        Label(model.t("clearSelection"), systemImage: "xmark.circle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(CompactUtilityButtonStyle())
+                    .padding(.top, 8)
+                } label: {
+                    Label("\(model.protectedPaths.count) \(model.t("protectedPaths"))", systemImage: "shield.checkered")
+                        .font(.subheadline.weight(.semibold))
                 }
             }
 
             Divider()
 
-            Text(model.t("risk"))
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 8) {
+                Label(
+                    model.selectedRiskCount == 0 ? model.t("safeSelection") : "\(model.selectedRiskCount) \(model.t("reviewSelections"))",
+                    systemImage: model.selectedRiskCount == 0 ? "checkmark.circle" : "exclamationmark.triangle"
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(model.selectedRiskCount == 0 ? AppTheme.accent : .orange)
 
-            RiskLegend(title: model.t("safe"), detail: "Cache and generated files.", color: .green)
-            RiskLegend(title: model.t("review"), detail: "Rebuildable, but can affect dev workflow.", color: .orange)
-            RiskLegend(title: model.t("personal"), detail: "App data or project dependencies.", color: .red)
+                Text(model.t("riskHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if !model.lastErrors.isEmpty {
                 Divider()
@@ -812,7 +1181,7 @@ private struct UtilityPanel: View {
 
             Spacer()
         }
-        .padding(20)
+        .padding(18)
         .background(AppTheme.panel)
     }
 }
@@ -828,7 +1197,7 @@ private struct PrimaryUtilityButtonStyle: ButtonStyle {
             .padding(.horizontal, 14)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isEnabled ? Color.accentColor : Color.gray.opacity(0.35))
+                    .fill(isEnabled ? AppTheme.accent : Color.gray.opacity(0.35))
             )
             .opacity(configuration.isPressed ? 0.82 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
@@ -882,8 +1251,10 @@ private struct FindingRow: View {
     let finding: CleanupFinding
     let isSelected: Bool
     let isPathSelected: (CleanupPathEntry) -> Bool
+    let isPathProtected: (CleanupPathEntry) -> Bool
     let onToggle: () -> Void
     let onTogglePath: (CleanupPathEntry) -> Void
+    let onToggleProtection: (CleanupPathEntry) -> Void
     let language: AppLanguage
 
     @State private var expanded = false
@@ -893,7 +1264,13 @@ private struct FindingRow: View {
             HStack(alignment: .top, spacing: 12) {
                 Toggle("", isOn: Binding(get: { isSelected }, set: { _ in onToggle() }))
                     .labelsHidden()
-                    .padding(.top, 2)
+                    .padding(.top, 8)
+
+                Image(systemName: findingIcon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(riskColor)
+                    .frame(width: 34, height: 34)
+                    .background(riskColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -932,7 +1309,7 @@ private struct FindingRow: View {
                     Spacer()
                 }
                 .foregroundStyle(.secondary)
-                .padding(.leading, 34)
+                .padding(.leading, 78)
             }
             .buttonStyle(.plain)
 
@@ -943,15 +1320,37 @@ private struct FindingRow: View {
                             entry: entry,
                             isSelected: isPathSelected,
                             toggle: onTogglePath,
+                            isProtected: isPathProtected,
+                            toggleProtection: onToggleProtection,
                             language: language
                         )
                     }
                 }
-                .padding(.leading, 34)
+                .padding(.leading, 78)
                 .padding(.top, 4)
             }
         }
+        .padding(14)
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppTheme.border, lineWidth: 1))
         .contentShape(Rectangle())
+    }
+
+    private var riskColor: Color {
+        switch finding.risk {
+        case .safe: AppTheme.accent
+        case .review: .orange
+        case .personal: .red
+        }
+    }
+
+    private var findingIcon: String {
+        let title = finding.title.lowercased()
+        if title.contains("xcode") || title.contains("developer") { return "hammer.fill" }
+        if title.contains("log") || title.contains("trash") { return "trash.fill" }
+        if title.contains("chrome") || title.contains("browser") { return "globe" }
+        if title.contains("message") || title.contains("zalo") { return "bubble.left.and.bubble.right.fill" }
+        return "archivebox.fill"
     }
 
     private var pathSummary: String {
@@ -978,8 +1377,26 @@ private struct PathEntryRow: View {
     let entry: CleanupPathEntry
     let isSelected: (CleanupPathEntry) -> Bool
     let toggle: (CleanupPathEntry) -> Void
+    let isProtected: (CleanupPathEntry) -> Bool
+    let toggleProtection: (CleanupPathEntry) -> Void
     let language: AppLanguage
     @State private var expanded = false
+
+    init(
+        entry: CleanupPathEntry,
+        isSelected: @escaping (CleanupPathEntry) -> Bool,
+        toggle: @escaping (CleanupPathEntry) -> Void,
+        isProtected: @escaping (CleanupPathEntry) -> Bool = { _ in false },
+        toggleProtection: @escaping (CleanupPathEntry) -> Void = { _ in },
+        language: AppLanguage
+    ) {
+        self.entry = entry
+        self.isSelected = isSelected
+        self.toggle = toggle
+        self.isProtected = isProtected
+        self.toggleProtection = toggleProtection
+        self.language = language
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1002,6 +1419,7 @@ private struct PathEntryRow: View {
 
                 Toggle("", isOn: Binding(get: { isSelected(entry) }, set: { _ in toggle(entry) }))
                     .labelsHidden()
+                    .disabled(isProtected(entry))
 
                 Image(systemName: entryIcon)
                     .foregroundStyle(.secondary)
@@ -1019,6 +1437,14 @@ private struct PathEntryRow: View {
                         Text(entry.bytes.storageText)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                        Button {
+                            toggleProtection(entry)
+                        } label: {
+                            Image(systemName: isProtected(entry) ? "shield.fill" : "shield")
+                                .foregroundStyle(isProtected(entry) ? AppTheme.accent : Color.secondary)
+                        }
+                        .buttonStyle(.borderless)
+                        .help(isProtected(entry) ? "Remove protection" : "Protect this path")
                     }
                     Text(entry.url.path)
                         .font(.caption2)
@@ -1035,6 +1461,8 @@ private struct PathEntryRow: View {
                             entry: child,
                             isSelected: isSelected,
                             toggle: toggle,
+                            isProtected: isProtected,
+                            toggleProtection: toggleProtection,
                             language: language
                         )
                     }
@@ -1166,9 +1594,12 @@ private struct RiskBadge: View {
 }
 
 private enum AppTheme {
+    static let accent = Color(red: 0.12, green: 0.62, blue: 0.34)
     static let background = Color(nsColor: .windowBackgroundColor)
-    static let header = Color(nsColor: .controlBackgroundColor)
-    static let panel = Color(nsColor: .controlBackgroundColor)
-    static let card = Color(nsColor: .textBackgroundColor)
-    static let control = Color(nsColor: .quaternaryLabelColor).opacity(0.12)
+    static let sidebar = Color(nsColor: .underPageBackgroundColor)
+    static let header = Color(nsColor: .windowBackgroundColor)
+    static let panel = Color(nsColor: .underPageBackgroundColor)
+    static let card = Color(nsColor: .controlBackgroundColor)
+    static let control = Color(nsColor: .quaternaryLabelColor).opacity(0.1)
+    static let border = Color(nsColor: .separatorColor).opacity(0.55)
 }

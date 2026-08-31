@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -11,12 +12,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct VigCleanApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     var body: some Scene {
         WindowGroup {
             CleanerView()
-                .frame(minWidth: 980, minHeight: 680)
+                .frame(minWidth: 1120, minHeight: 720)
         }
         .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    updaterController.checkForUpdates(nil)
+                }
+                .disabled(!updaterController.updater.canCheckForUpdates)
+            }
+        }
     }
 }
