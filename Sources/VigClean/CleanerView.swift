@@ -62,17 +62,19 @@ struct CleanerView: View {
                             .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(AppTheme.accent)
                     }
-                    if !model.isCleaning {
-                        Button {
+                    Button {
+                        if model.isCleaning {
+                            model.cancelCurrentCleanup()
+                        } else {
                             model.cancelCurrentScan()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.caption.weight(.bold))
-                                .frame(width: 18, height: 18)
                         }
-                        .buttonStyle(.borderless)
-                        .help("Cancel scan")
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption.weight(.bold))
+                            .frame(width: 18, height: 18)
                     }
+                    .buttonStyle(.borderless)
+                    .help(model.isCleaning ? "Cancel cleanup" : "Cancel scan")
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -291,7 +293,7 @@ private struct CleanTab: View {
                         detail: model.progressDetail.isEmpty ? "Preparing scan..." : model.progressDetail,
                         systemImage: model.isCleaning ? "trash" : "magnifyingglass",
                         progress: model.operationProgress,
-                        onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
+                        onCancel: model.isCleaning ? { model.cancelCurrentCleanup() } : { model.cancelCurrentScan() }
                     )
                     .padding(.horizontal, 18)
                     .padding(.bottom, 10)
@@ -523,7 +525,7 @@ private struct AppsTab: View {
                     detail: model.progressDetail.isEmpty ? "Preparing app scan..." : model.progressDetail,
                     systemImage: model.isCleaning ? "trash" : "square.grid.2x2",
                     progress: model.operationProgress,
-                    onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
+                    onCancel: model.isCleaning ? { model.cancelCurrentCleanup() } : { model.cancelCurrentScan() }
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
@@ -697,7 +699,7 @@ private struct DiskTab: View {
                     detail: model.progressDetail.isEmpty ? "Preparing disk analysis..." : model.progressDetail,
                     systemImage: model.isCleaning ? "trash" : "chart.pie",
                     progress: model.operationProgress,
-                    onCancel: model.isCleaning ? nil : { model.cancelCurrentScan() }
+                    onCancel: model.isCleaning ? { model.cancelCurrentCleanup() } : { model.cancelCurrentScan() }
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)

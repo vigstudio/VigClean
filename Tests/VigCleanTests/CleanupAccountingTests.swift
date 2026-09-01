@@ -70,4 +70,67 @@ struct CleanupAccountingTests {
         #expect(result.deletedBytes == bytes)
         #expect(!FileManager.default.fileExists(atPath: root.path))
     }
+
+    @Test func blocksSelectionsBeyondTheSafetyCap() async {
+        let entries = (0...CleanupOperationLimits.maximumSelectedRoots).map { index in
+            CleanupPathEntry(
+                url: URL(fileURLWithPath: "/tmp/VigClean-cap-fixture-\(index)"),
+                bytes: 1,
+                cleanability: .removable
+            )
+        }
+        let finding = CleanupFinding(
+            title: "Cap fixture",
+            detail: "Test fixture",
+            pathEntries: entries,
+            bytes: Int64(entries.count),
+            risk: .safe,
+            selectedByDefault: false
+        )
+
+        let result = await CleanupScanner().delete(
+            [finding],
+            permanently: true,
+            terminateAffectedApps: false,
+            requestAdminWhenNeeded: false
+        )
+        #expect(result.deletedBytes == 0)
+        #expect(result.errors.count == 1)
+        #expect(result.errors[0].contains("safety limit"))
+    }
+
+    @Test func honoursCancellationBeforeDeletingTheNextRoot() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VigClean-Cancel-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let entries = try (0..<20).map { index in
+            let url = root.appendingPathComponent("item-\(index)")
+            try Data(repeating: UInt8(index), count: 1_024).write(to: url)
+            return CleanupPathEntry(url: url, bytes: 1_024, cleanability: .removable)
+        }
+        let finding = CleanupFinding(
+            title: "Cancellation fixture",
+            detail: "Test fixture",
+            pathEntries: entries,
+            bytes: 20_480,
+            risk: .safe,
+            selectedByDefault: false
+        )
+
+        let task = Task {
+            await CleanupScanner().delete(
+                [finding],
+                permanently: true,
+                terminateAffectedApps: false,
+                requestAdminWhenNeeded: false
+            )
+        }
+        task.cancel()
+        let result = await task.value
+        #expect(result.cancelled)
+        #expect(result.deletedBytes == 0)
+        #expect(FileManager.default.fileExists(atPath: entries[0].url.path))
+    }
 }

@@ -99,6 +99,7 @@ Risk levels:
 - Users can protect additional paths. Protected paths are excluded from selection and deletion.
 - Scan results classify every cleanup path as removable, administrator-required, protected, or unavailable. Protected and unavailable paths cannot be selected.
 - Cleanup selection is normalized before preview and deletion: duplicate URLs and descendants of selected parents are removed, hidden files are included in allocated-size accounting, and hard links are counted once by device/inode identity.
+- Cleanup execution has a 10,000-selected-path safety cap, checks cancellation between deletion roots, yields in bounded chunks, and exposes a cleanup Cancel control with partial-result reporting.
 - Admin permission is requested only when required and enabled.
 - Related apps can be quit before their data is removed.
 - Downloads and Documents scanning is disabled by default.
@@ -270,10 +271,10 @@ Features that should not be copied without substantial validation:
 - `DONE` Add a cleanability pre-filter so UI results distinguish removable, admin-required, protected, and unavailable items.
 - `DONE` Canonicalize known macOS firmlinks before protected-path comparison.
 - `DONE` Strengthen symlink handling and revalidate resolved targets immediately before deletion.
-- `PLANNED` Add explicit per-operation and total-item safety caps.
+- `IN PROGRESS` Add explicit per-operation and total-item safety caps. The selected-path cap is implemented; recursive total filesystem-item accounting remains.
 - `PLANNED` Add a real dry-run mode that exercises validation and accounting without file changes.
 - `DONE` Deduplicate overlapping parent/child selections before size calculation and deletion.
-- `PLANNED` Process deletion in cancellable chunks with honest item and byte progress.
+- `IN PROGRESS` Process deletion in cancellable chunks with honest item and byte progress. Cancellation and bounded yields are implemented; structured item/byte progress remains.
 - `PLANNED` Store per-path success, skip, and error details in the local operation log.
 - `PLANNED` Add adversarial tests for symlinks, traversal, NULL bytes, firmlinks, stale paths, overlapping selections, and protected roots.
 
@@ -452,6 +453,14 @@ For a release:
 - Important behavior or files changed: added a shared cleanup selection plan, recursive allocated-size calculator, hidden-file accounting, device/inode hard-link deduplication, and consistent accounting for cleanup and uninstall selections.
 - Verification performed: eleven tests passed using temporary fixtures, including parent/child deletion, hidden files, hard links, firmlinks, symlinks, protected paths, and cleanability; release build passed; real app UI verified empty, scanning, determinate progress, disabled destructive action, and cancellation states without deleting user data.
 - Remaining limitation or follow-up: chunked cancellation, operation caps, byte progress, and detailed per-path logs are next. The host currently selects Command Line Tools by default, so verification used `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` to provide the required SwiftUI macro plugin.
+- Commit: included with this entry.
+
+### 2026-09-01: Cleanup caps and cancellation foundation
+
+- Outcome: cleanup can be cancelled safely between selected roots and pathological selections above 10,000 paths are refused before filesystem mutation.
+- Important behavior or files changed: added selected-path limits, bounded execution yields, cancellation state in delete results, tracked cleanup tasks, Cancel controls for cleanup/uninstall/disk operations, and partial-result status messaging.
+- Verification performed: thirteen tests passed, including pre-cancelled deletion and over-limit selection fixtures; no real user data was modified.
+- Remaining limitation or follow-up: recursive total-item caps, structured per-path results, byte/item progress, persisted detailed logs, and cancellation during administrator authorization remain.
 - Commit: included with this entry.
 
 ## Session log template

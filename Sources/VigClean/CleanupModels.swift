@@ -100,10 +100,16 @@ struct DeleteResult: Sendable {
     let errors: [String]
     let freeBytesBefore: Int64
     let freeBytesAfter: Int64
+    let cancelled: Bool
 
     var recoveredBytes: Int64 {
         max(freeBytesAfter - freeBytesBefore, 0)
     }
+}
+
+enum CleanupOperationLimits {
+    static let maximumSelectedRoots = 10_000
+    static let chunkSize = 100
 }
 
 enum CleanupOperationKind: String, Codable, Sendable {

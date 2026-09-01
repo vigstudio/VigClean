@@ -207,10 +207,21 @@ struct CleanupScanner: Sendable {
         var deleted: Int64 = 0
         var errors: [String] = []
         var adminEntries: [(url: URL, bytes: Int64, snapshot: DeletionValidationSnapshot)] = []
-        let deletionEntries = CleanupSelectionPlan(findings: findings).entries
+        let selectedEntries = findings.flatMap(\.pathEntries).flatMap(\.flattened)
+        guard selectedEntries.count <= CleanupOperationLimits.maximumSelectedRoots else {
+            return DeleteResult(
+                deletedBytes: 0,
+                errors: ["Operation blocked: \(selectedEntries.count) selected paths exceed the safety limit of \(CleanupOperationLimits.maximumSelectedRoots)."],
+                freeBytesBefore: freeBytesBefore,
+                freeBytesAfter: availableDiskBytes(),
+                cancelled: false
+            )
+        }
+        let deletionEntries = CleanupSelectionPlan(entries: selectedEntries).entries
             .filter { fileManager.fileExists(atPath: $0.url.path) }
         let totalEntries = max(deletionEntries.count, 1)
         var completedEntries = 0
+        var cancelled = false
 
         for finding in findings {
             if finding.title.hasPrefix("Uninstall App: ") {
@@ -220,6 +231,10 @@ struct CleanupScanner: Sendable {
         }
 
         for entry in deletionEntries {
+            if Task.isCancelled {
+                cancelled = true
+                break
+            }
             let url = entry.url
             await progress(url.path, Double(completedEntries) / Double(totalEntries))
             do {
@@ -253,6 +268,9 @@ struct CleanupScanner: Sendable {
             }
             completedEntries += 1
             await progress(url.path, Double(completedEntries) / Double(totalEntries))
+            if completedEntries.isMultiple(of: CleanupOperationLimits.chunkSize) {
+                await Task.yield()
+            }
         }
 
         if !adminEntries.isEmpty {
@@ -272,7 +290,8 @@ struct CleanupScanner: Sendable {
             deletedBytes: deleted,
             errors: errors,
             freeBytesBefore: freeBytesBefore,
-            freeBytesAfter: availableDiskBytes()
+            freeBytesAfter: availableDiskBytes(),
+            cancelled: cancelled
         )
     }
 

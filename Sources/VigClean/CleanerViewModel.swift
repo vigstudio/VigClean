@@ -36,6 +36,7 @@ final class CleanerViewModel: ObservableObject {
     private var cleanupScanTask: Task<Void, Never>?
     private var appScanTask: Task<Void, Never>?
     private var diskScanTask: Task<Void, Never>?
+    private var cleanupTask: Task<Void, Never>?
 
     init() {
         protectedPaths = Set(UserDefaults.standard.stringArray(forKey: protectedPathsKey) ?? [])
@@ -202,6 +203,12 @@ final class CleanerViewModel: ObservableObject {
         progressDetail = "No files were changed"
     }
 
+    func cancelCurrentCleanup() {
+        cleanupTask?.cancel()
+        status = "Cancelling cleanup..."
+        progressDetail = "Finishing the current item safely"
+    }
+
     func cleanSelected() {
         guard !isScanning, !isCleaning, !selectedFindings.isEmpty else { return }
         let targets = selectedFindings
@@ -217,9 +224,8 @@ final class CleanerViewModel: ObservableObject {
         let protectedPaths = protectedPaths
         let itemCount = targets.flatMap(\.pathEntries).count
 
-        Task {
-            let result = await Task.detached {
-                await CleanupScanner().delete(
+        cleanupTask = Task {
+            let result = await CleanupScanner().delete(
                     targets,
                     permanently: permanentlyDelete,
                     terminateAffectedApps: terminateAffectedApps,
@@ -230,13 +236,13 @@ final class CleanerViewModel: ObservableObject {
                     self?.operationProgress = fraction
                     }
                 )
-            }.value
             lastErrors = result.errors
-            status = result.errors.isEmpty
+            status = result.cancelled ? "Cleanup cancelled" : result.errors.isEmpty
                 ? "Cleaned \(result.deletedBytes.storageText)"
                 : "Cleaned \(result.deletedBytes.storageText), with \(result.errors.count) errors"
-            progressDetail = "Clean complete"
+            progressDetail = result.cancelled ? "Partial results were recorded" : "Clean complete"
             isCleaning = false
+            cleanupTask = nil
             operationProgress = nil
             recordHistory(CleanupHistoryEntry(
                 kind: .cleanup,
@@ -277,9 +283,8 @@ final class CleanerViewModel: ObservableObject {
         let requestAdminWhenNeeded = requestAdminWhenNeeded
         let protectedPaths = protectedPaths
 
-        Task {
-            let result = await Task.detached {
-                await CleanupScanner().delete(
+        cleanupTask = Task {
+            let result = await CleanupScanner().delete(
                     [finding],
                     permanently: permanentlyDelete,
                     terminateAffectedApps: true,
@@ -290,13 +295,13 @@ final class CleanerViewModel: ObservableObject {
                         self?.operationProgress = fraction
                     }
                 )
-            }.value
             lastErrors = result.errors
-            status = result.errors.isEmpty
+            status = result.cancelled ? "Uninstall cancelled" : result.errors.isEmpty
                 ? "Uninstalled \(app.name), removed \(result.deletedBytes.storageText)"
                 : "Uninstalled \(app.name) with \(result.errors.count) errors"
             progressDetail = "Uninstall complete"
             isCleaning = false
+            cleanupTask = nil
             operationProgress = nil
             recordHistory(CleanupHistoryEntry(
                 kind: .uninstall,
@@ -457,9 +462,8 @@ final class CleanerViewModel: ObservableObject {
         let protectedPaths = protectedPaths
         let itemCount = findings.count
 
-        Task {
-            let result = await Task.detached {
-                await CleanupScanner().delete(
+        cleanupTask = Task {
+            let result = await CleanupScanner().delete(
                     findings,
                     permanently: permanentlyDelete,
                     terminateAffectedApps: terminateAffectedApps,
@@ -470,13 +474,13 @@ final class CleanerViewModel: ObservableObject {
                         self?.operationProgress = fraction
                     }
                 )
-            }.value
             lastErrors = result.errors
-            status = result.errors.isEmpty
+            status = result.cancelled ? "Disk cleanup cancelled" : result.errors.isEmpty
                 ? "Deleted \(result.deletedBytes.storageText)"
                 : "Deleted \(result.deletedBytes.storageText), with \(result.errors.count) errors"
             progressDetail = "Disk cleanup complete"
             isCleaning = false
+            cleanupTask = nil
             operationProgress = nil
             recordHistory(CleanupHistoryEntry(
                 kind: .diskCleanup,
