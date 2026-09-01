@@ -121,6 +121,7 @@ The storage analyzer groups disk usage, exposes large paths, supplies risk guida
 - Release assets are produced for arm64, x86_64, and Universal architectures in ZIP and DMG formats.
 - `Scripts/build-app.sh` embeds Sparkle and applies the expected runtime search path.
 - `Scripts/package-release.sh` creates release archives and checksums.
+- Release packaging removes temporary arm64, x86_64, and Universal app bundles after producing distribution assets so Spotlight does not present staging copies as installed apps.
 - Version `0.0.2` was released publicly on GitHub.
 
 ### Documentation and website
@@ -372,6 +373,7 @@ For a release:
 - 2026-09-01: After reviewing MacSai, prioritized cleanability filtering, chunked cancellable deletion, dry run, duplicate detection, and incremental scanning. Deferred higher-risk binary thinning and APFS consolidation.
 - 2026-09-01: Established this `AGENTS.md` as the single durable project-memory and roadmap file for future sessions.
 - 2026-09-01: Classified cleanup paths before selection and made protected or unavailable results non-selectable while preserving explicit administrator-required results.
+- 2026-09-01: Kept release app bundles as temporary staging artifacts and removed them automatically after packaging to avoid duplicate VigClean results in Spotlight.
 
 ## Session log
 
@@ -411,6 +413,14 @@ For a release:
 - Important behavior or files changed: added a cleanability classifier, made protected and unavailable paths non-selectable, surfaced localized status badges, and excluded non-selectable paths from cleanup accounting.
 - Verification performed: `swift test` passed with five tests across cleanability classification and deletion safety suites.
 - Remaining limitation or follow-up: firmlink canonicalization and stronger symlink revalidation remain the next roadmap milestone.
+- Commit: included with this entry.
+
+### 2026-09-01: Remove release staging apps
+
+- Outcome: release packaging no longer leaves three architecture-specific `VigClean.app` copies under `build/`.
+- Important behavior or files changed: added an exit trap to clean release staging bundles and icon generation files after packaging; distribution ZIP, DMG, and checksum files remain intact.
+- Verification performed: validated the packaging script with `bash -n` and confirmed the old release staging directory was removed.
+- Remaining limitation or follow-up: `build/VigClean.app` intentionally remains as the local development app produced by `Scripts/build-app.sh`.
 - Commit: included with this entry.
 
 ## Session log template

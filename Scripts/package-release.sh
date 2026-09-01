@@ -9,6 +9,12 @@ ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
 SOURCE_ICON="$ROOT_DIR/Sources/VigClean/Resources/VigCleanLogo.png"
 SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 
+cleanup_staging() {
+  rm -rf "$BUILD_APPS_DIR" "$ICONSET_DIR"
+}
+
+trap cleanup_staging EXIT
+
 cd "$ROOT_DIR"
 
 rm -rf "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
