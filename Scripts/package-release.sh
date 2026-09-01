@@ -8,7 +8,7 @@ BUILD_APPS_DIR="$ROOT_DIR/build/release-$VERSION"
 ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
 SOURCE_ICON="$ROOT_DIR/Sources/VigClean/Resources/VigCleanLogo.png"
 SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
-SIGNING_IDENTITY="${VIGCLEAN_SIGNING_IDENTITY:-}"
+SIGNING_IDENTITY="${VIGCLEAN_SIGNING_IDENTITY:--}"
 NOTARY_PROFILE="${VIGCLEAN_NOTARY_PROFILE:-}"
 
 cleanup_staging() {
@@ -76,7 +76,11 @@ create_app() {
   copy_bundle_resources "$source_build_dir" "$resources_dir"
   chmod +x "$macos_dir/VigClean"
 
-  codesign --force --deep --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$app_dir" >/dev/null
+  if [ "$SIGNING_IDENTITY" = "-" ]; then
+    codesign --force --deep --sign - "$app_dir" >/dev/null
+  else
+    codesign --force --deep --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$app_dir" >/dev/null
+  fi
   codesign --verify --deep --strict --verbose=2 "$app_dir"
 }
 
@@ -100,7 +104,9 @@ package_app() {
     -ov \
     -format UDZO \
     "$DIST_DIR/$base_name.dmg" >/dev/null
-  codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DIST_DIR/$base_name.dmg" >/dev/null
+  if [ "$SIGNING_IDENTITY" != "-" ]; then
+    codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DIST_DIR/$base_name.dmg" >/dev/null
+  fi
 
   if [ -n "$NOTARY_PROFILE" ]; then
     xcrun notarytool submit "$DIST_DIR/$base_name.dmg" --keychain-profile "$NOTARY_PROFILE" --wait
@@ -109,20 +115,23 @@ package_app() {
   fi
 }
 
-if [ -z "$SIGNING_IDENTITY" ]; then
-  echo "Set VIGCLEAN_SIGNING_IDENTITY to a Developer ID Application certificate." >&2
-  exit 1
-fi
+if [ "$SIGNING_IDENTITY" = "-" ]; then
+  if [ -n "$NOTARY_PROFILE" ]; then
+    echo "Notarization requires VIGCLEAN_SIGNING_IDENTITY to be a Developer ID Application certificate." >&2
+    exit 1
+  fi
+  echo "Packaging with an ad-hoc app signature. Gatekeeper will require the user to approve the app manually."
+else
+  IDENTITY_LINE="$(security find-identity -v -p codesigning | grep -F "$SIGNING_IDENTITY" | head -n 1 || true)"
+  if [ -z "$IDENTITY_LINE" ]; then
+    echo "Missing signing identity: $SIGNING_IDENTITY" >&2
+    exit 1
+  fi
 
-IDENTITY_LINE="$(security find-identity -v -p codesigning | grep -F "$SIGNING_IDENTITY" | head -n 1 || true)"
-if [ -z "$IDENTITY_LINE" ]; then
-  echo "Missing signing identity: $SIGNING_IDENTITY" >&2
-  exit 1
-fi
-
-if [[ "$IDENTITY_LINE" != *'"Developer ID Application:'* ]]; then
-  echo "Release packaging requires a Developer ID Application certificate; Apple Development and Personal Team certificates cannot be notarized for public distribution." >&2
-  exit 1
+  if [[ "$IDENTITY_LINE" != *'"Developer ID Application:'* ]]; then
+    echo "Public release signing requires a Developer ID Application certificate; Apple Development and Personal Team certificates cannot be notarized." >&2
+    exit 1
+  fi
 fi
 
 rm -rf "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"

@@ -5,20 +5,20 @@
   <channel>
     <title>VigClean Updates</title>
     <link>https://github.com/vigstudio/VigClean</link>
-    <description>Signed updates for VigClean.</description>
+    <description>EdDSA-verified updates for VigClean.</description>
     <language>en</language>
     <item>
-      <title>VigClean 0.0.2</title>
+      <title>VigClean 0.0.3</title>
       <link>https://vigclean-guide.netlify.app</link>
-      <sparkle:version>2</sparkle:version>
-      <sparkle:shortVersionString>0.0.2</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>14.0.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/vigstudio/VigClean/releases/tag/v0.0.2</sparkle:releaseNotesLink>
-      <pubDate>Mon, 31 Aug 2026 17:28:24 +0700</pubDate>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://github.com/vigstudio/VigClean/releases/tag/v0.0.3</sparkle:releaseNotesLink>
+      <pubDate>Wed, 02 Sep 2026 00:11:19 +0700</pubDate>
       <enclosure
-        url="https://github.com/vigstudio/VigClean/releases/download/v0.0.2/VigClean-0.0.2-universal.app.zip"
-        sparkle:edSignature="WyZxGXhIDZoB6bHe/p6znIk2ACXwBtpR1nvBCyaL4phEvSiP7iF20Nju+WX5hu/6yoSAs9sYI0itlje8xFGuCw=="
-        length="5807200"
+        url="https://github.com/vigstudio/VigClean/releases/download/v0.0.3/VigClean-0.0.3-universal.app.zip"
+        sparkle:edSignature="GsETvM2+4Vf5m4dDsQohMR6t3dyNG3rzT38o2Wp6QA/xrWEg/C2TikXlXy20avKbngNmj7Qfckn0z13zEd+pBw=="
+        length="5833295"
         type="application/octet-stream" />
     </item>
   </channel>

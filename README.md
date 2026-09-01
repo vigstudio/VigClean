@@ -31,7 +31,9 @@ The app focuses on practical cleanup work instead of a one-click black box: it s
 
 ## VigClean 0.0.3
 
-Version 0.0.3 adds macOS Ventura 13 support, Developer ID signing, firmlink and symlink hardening, cleanup-path cleanability states, truthful allocated-size accounting, parent/child deduplication, operation limits, and cancellable cleanup.
+Version 0.0.3 adds macOS Ventura 13 support, firmlink and symlink hardening, cleanup-path cleanability states, truthful allocated-size accounting, parent/child deduplication, operation limits, and cancellable cleanup.
+
+Version 0.0.3 is distributed free of charge without Apple Developer ID notarization. On first launch, right-click **VigClean.app**, choose **Open**, then confirm **Open**. If macOS still blocks it, go to **System Settings → Privacy & Security** and choose **Open Anyway** for VigClean.
 
 VigClean checks for releases every day using Sparkle. Update archives are verified with an EdDSA signature before extraction and installation. A manual **Check for Updates…** command is also available from the app menu.
 
@@ -174,7 +176,7 @@ Sources/VigClean/
   Resources/                App logo and resources
 Scripts/
   build-app.sh              Builds the macOS .app bundle
-  package-release.sh        Creates signed release archives for each architecture
+  package-release.sh        Creates release archives for each architecture
 Packaging/
   Info.plist                Bundle metadata
 site/                       Vietnamese / English public guide
