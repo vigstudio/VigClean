@@ -122,7 +122,7 @@ The storage analyzer groups disk usage, exposes large paths, supplies risk guida
 - Automatic update checks use the GitHub-hosted `appcast.xml`.
 - Update archives are verified with an EdDSA signature.
 - Release assets are produced for arm64, x86_64, and Universal architectures in ZIP and DMG formats.
-- Version `0.0.3` release candidates target macOS 13.0, use hardened runtime, and are signed with Apple Developer ID. Public release is blocked until notarization credentials are configured and Gatekeeper accepts the stapled artifacts.
+- Version `0.0.3` release candidates target macOS 13.0 and use hardened runtime. Public release is blocked until the `vingamagic@icloud.com` Apple ID belongs to a paid Apple Developer Program team that can issue a Developer ID Application certificate and submit notarization requests.
 - `Scripts/build-app.sh` embeds Sparkle and applies the expected runtime search path.
 - `Scripts/package-release.sh` creates release archives and checksums.
 - Release packaging removes temporary arm64, x86_64, and Universal app bundles after producing distribution assets so Spotlight does not present staging copies as installed apps.
@@ -301,7 +301,7 @@ Features that should not be copied without substantial validation:
 
 ### Distribution and trust
 
-- `IN PROGRESS` Add Apple Developer ID signing and notarization. Developer ID signing and hardened runtime are complete; notarization awaits a notarytool keychain profile.
+- `IN PROGRESS` Add Apple Developer ID signing and notarization. Hardened-runtime packaging is complete, but the release owner is moving away from the former Developer ID team. The new `vingamagic@icloud.com` account currently has only a Personal Team and must join the Apple Developer Program before release signing and notarization can resume.
 - `PLANNED` Publish through an official Homebrew cask after signed/notarized distribution is stable.
 - `PLANNED` Automate release packaging, checksums, appcast update, and GitHub asset upload in CI.
 - `PLANNED` Add an update-check preference and surface the current update channel.
@@ -394,6 +394,7 @@ For a release:
 - 2026-09-01: Made cleanup previews and deletion payloads share one normalized selection plan, with recursive allocated-size accounting that includes hidden files and deduplicates hard links.
 - 2026-09-01: Lowered the supported deployment target from macOS 14 to macOS 13 after replacing the macOS 14-only `onChange` overload and verifying both architectures link with `minos 13.0`.
 - 2026-09-01: Required Developer ID signing and hardened runtime for release packages; public `0.0.3` publishing must wait for successful notarization and Gatekeeper assessment.
+- 2026-09-02: Removed the former Developer ID identity from release defaults after the release owner chose to stop using that Apple account. Release packaging now requires an explicitly supplied Developer ID Application identity and rejects Apple Development/Personal Team certificates; `vingamagic@icloud.com` must first join a paid Apple Developer Program team.
 
 ## Session log
 
@@ -474,6 +475,14 @@ For a release:
 - Verification performed: thirteen tests passed; arm64 and x86_64 release builds passed; Universal DMG contains both architectures with `minos 13.0`; bundle version is `0.0.3 (3)`; Developer ID signature, hardened runtime, Sparkle EdDSA signature, and SHA-256 checksums validated.
 - Remaining limitation or follow-up: Gatekeeper correctly rejects the current candidate as `Unnotarized Developer ID`. Configure a `notarytool` keychain profile, rebuild with `VIGCLEAN_NOTARY_PROFILE`, staple, validate, run Gatekeeper assessment, then publish the GitHub release and appcast commit.
 - Commit: included with this entry; do not publish this candidate until notarization succeeds.
+
+### 2026-09-02: Release-account migration guard
+
+- Outcome: release packaging no longer references or silently uses the former Developer ID account.
+- Important behavior or files changed: removed the former signing identity default and made the packaging script require an explicit Developer ID Application certificate, rejecting Personal Team and Apple Development certificates.
+- Verification performed: validated the packaging script syntax and confirmed that it fails safely when no release identity or a Personal Team development identity is supplied.
+- Remaining limitation or follow-up: `vingamagic@icloud.com` currently belongs only to Personal Team `49NN45N3J2`; enroll it in the paid Apple Developer Program, create a Developer ID Application certificate, and configure notarization before publishing `0.0.3`.
+- Commit: included with this entry.
 
 ## Session log template
 

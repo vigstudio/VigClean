@@ -8,7 +8,7 @@ BUILD_APPS_DIR="$ROOT_DIR/build/release-$VERSION"
 ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
 SOURCE_ICON="$ROOT_DIR/Sources/VigClean/Resources/VigCleanLogo.png"
 SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
-SIGNING_IDENTITY="${VIGCLEAN_SIGNING_IDENTITY:-85B07F47D8FFC18F3BD5AA21EFA43F02BD85B162}"
+SIGNING_IDENTITY="${VIGCLEAN_SIGNING_IDENTITY:-}"
 NOTARY_PROFILE="${VIGCLEAN_NOTARY_PROFILE:-}"
 
 cleanup_staging() {
@@ -18,9 +18,6 @@ cleanup_staging() {
 trap cleanup_staging EXIT
 
 cd "$ROOT_DIR"
-
-rm -rf "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
-mkdir -p "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
 
 build_swift_arch() {
   local arch="$1"
@@ -112,10 +109,24 @@ package_app() {
   fi
 }
 
-if ! security find-identity -v -p codesigning | grep -Fq "$SIGNING_IDENTITY"; then
+if [ -z "$SIGNING_IDENTITY" ]; then
+  echo "Set VIGCLEAN_SIGNING_IDENTITY to a Developer ID Application certificate." >&2
+  exit 1
+fi
+
+IDENTITY_LINE="$(security find-identity -v -p codesigning | grep -F "$SIGNING_IDENTITY" | head -n 1 || true)"
+if [ -z "$IDENTITY_LINE" ]; then
   echo "Missing signing identity: $SIGNING_IDENTITY" >&2
   exit 1
 fi
+
+if [[ "$IDENTITY_LINE" != *'"Developer ID Application:'* ]]; then
+  echo "Release packaging requires a Developer ID Application certificate; Apple Development and Personal Team certificates cannot be notarized for public distribution." >&2
+  exit 1
+fi
+
+rm -rf "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
+mkdir -p "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
 
 echo "Building VigClean $VERSION for Apple Silicon..."
 build_swift_arch arm64
