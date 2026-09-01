@@ -39,6 +39,7 @@ Status vocabulary:
 - Repository: <https://github.com/vigstudio/VigClean>
 - Platform: native macOS application
 - Language and UI: Swift 6 and SwiftUI
+- Minimum supported system for the next release: macOS 13 Ventura
 - Current public release: `0.0.2`
 - Latest release: <https://github.com/vigstudio/VigClean/releases/latest>
 - Public bilingual guide: <https://vigclean-guide.netlify.app>
@@ -121,6 +122,7 @@ The storage analyzer groups disk usage, exposes large paths, supplies risk guida
 - Automatic update checks use the GitHub-hosted `appcast.xml`.
 - Update archives are verified with an EdDSA signature.
 - Release assets are produced for arm64, x86_64, and Universal architectures in ZIP and DMG formats.
+- Version `0.0.3` release candidates target macOS 13.0, use hardened runtime, and are signed with Apple Developer ID. Public release is blocked until notarization credentials are configured and Gatekeeper accepts the stapled artifacts.
 - `Scripts/build-app.sh` embeds Sparkle and applies the expected runtime search path.
 - `Scripts/package-release.sh` creates release archives and checksums.
 - Release packaging removes temporary arm64, x86_64, and Universal app bundles after producing distribution assets so Spotlight does not present staging copies as installed apps.
@@ -299,7 +301,7 @@ Features that should not be copied without substantial validation:
 
 ### Distribution and trust
 
-- `PLANNED` Add Apple Developer ID signing and notarization when credentials are available.
+- `IN PROGRESS` Add Apple Developer ID signing and notarization. Developer ID signing and hardened runtime are complete; notarization awaits a notarytool keychain profile.
 - `PLANNED` Publish through an official Homebrew cask after signed/notarized distribution is stable.
 - `PLANNED` Automate release packaging, checksums, appcast update, and GitHub asset upload in CI.
 - `PLANNED` Add an update-check preference and surface the current update channel.
@@ -390,6 +392,8 @@ For a release:
 - 2026-09-01: Canonicalized `/var`, `/tmp`, and `/etc` firmlinks, rejected suspicious symlink redirects, and required the resolved target to remain unchanged immediately before deletion.
 - 2026-09-01: Explicitly deferred or rejected cleanup features whose safety, recovery, or truthfulness contracts are not yet proven.
 - 2026-09-01: Made cleanup previews and deletion payloads share one normalized selection plan, with recursive allocated-size accounting that includes hidden files and deduplicates hard links.
+- 2026-09-01: Lowered the supported deployment target from macOS 14 to macOS 13 after replacing the macOS 14-only `onChange` overload and verifying both architectures link with `minos 13.0`.
+- 2026-09-01: Required Developer ID signing and hardened runtime for release packages; public `0.0.3` publishing must wait for successful notarization and Gatekeeper assessment.
 
 ## Session log
 
@@ -462,6 +466,14 @@ For a release:
 - Verification performed: thirteen tests passed, including pre-cancelled deletion and over-limit selection fixtures; no real user data was modified.
 - Remaining limitation or follow-up: recursive total-item caps, structured per-path results, byte/item progress, persisted detailed logs, and cancellation during administrator authorization remain.
 - Commit: included with this entry.
+
+### 2026-09-01: VigClean 0.0.3 compatibility release candidate
+
+- Outcome: prepared a Developer ID-signed `0.0.3` release candidate supporting macOS 13 Ventura and later, and fixed architecture capture for current SwiftPM/Xcode output paths.
+- Important behavior or files changed: changed deployment and bundle minimums to 13.0, replaced a macOS 14-only SwiftUI API, updated version/build metadata, enforced fresh per-architecture capture, hardened-runtime signing, signature verification, min-version checks, optional notarization/stapling, release notes, README, guide requirement, and Sparkle appcast metadata/signature.
+- Verification performed: thirteen tests passed; arm64 and x86_64 release builds passed; Universal DMG contains both architectures with `minos 13.0`; bundle version is `0.0.3 (3)`; Developer ID signature, hardened runtime, Sparkle EdDSA signature, and SHA-256 checksums validated.
+- Remaining limitation or follow-up: Gatekeeper correctly rejects the current candidate as `Unnotarized Developer ID`. Configure a `notarytool` keychain profile, rebuild with `VIGCLEAN_NOTARY_PROFILE`, staple, validate, run Gatekeeper assessment, then publish the GitHub release and appcast commit.
+- Commit: included with this entry; do not publish this candidate until notarization succeeds.
 
 ## Session log template
 

@@ -2,12 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${1:-0.0.2}"
+VERSION="${1:-0.0.3}"
 DIST_DIR="$ROOT_DIR/dist/$VERSION"
 BUILD_APPS_DIR="$ROOT_DIR/build/release-$VERSION"
 ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
 SOURCE_ICON="$ROOT_DIR/Sources/VigClean/Resources/VigCleanLogo.png"
 SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+SIGNING_IDENTITY="${VIGCLEAN_SIGNING_IDENTITY:-85B07F47D8FFC18F3BD5AA21EFA43F02BD85B162}"
+NOTARY_PROFILE="${VIGCLEAN_NOTARY_PROFILE:-}"
 
 cleanup_staging() {
   rm -rf "$BUILD_APPS_DIR" "$ICONSET_DIR"
@@ -23,6 +25,14 @@ mkdir -p "$DIST_DIR" "$BUILD_APPS_DIR" "$ICONSET_DIR"
 build_swift_arch() {
   local arch="$1"
   swift build --configuration release --arch "$arch"
+}
+
+capture_swift_product() {
+  local arch="$1"
+  local destination="$2"
+  local bin_dir
+  bin_dir="$(swift build --show-bin-path --configuration release --arch "$arch")"
+  cp "$bin_dir/VigClean" "$destination"
 }
 
 create_icon() {
@@ -69,14 +79,22 @@ create_app() {
   copy_bundle_resources "$source_build_dir" "$resources_dir"
   chmod +x "$macos_dir/VigClean"
 
-  if command -v codesign >/dev/null 2>&1; then
-    codesign --force --deep --sign - "$app_dir" >/dev/null
-  fi
+  codesign --force --deep --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$app_dir" >/dev/null
+  codesign --verify --deep --strict --verbose=2 "$app_dir"
 }
 
 package_app() {
   local app_dir="$1"
   local base_name="$2"
+  local notary_zip="$BUILD_APPS_DIR/$base_name-notary.zip"
+
+  if [ -n "$NOTARY_PROFILE" ]; then
+    ditto -c -k --keepParent "$app_dir" "$notary_zip"
+    xcrun notarytool submit "$notary_zip" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$app_dir"
+    xcrun stapler validate "$app_dir"
+    rm -f "$notary_zip"
+  fi
 
   ditto -c -k --keepParent "$app_dir" "$DIST_DIR/$base_name.app.zip"
   hdiutil create \
@@ -85,27 +103,44 @@ package_app() {
     -ov \
     -format UDZO \
     "$DIST_DIR/$base_name.dmg" >/dev/null
+  codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DIST_DIR/$base_name.dmg" >/dev/null
+
+  if [ -n "$NOTARY_PROFILE" ]; then
+    xcrun notarytool submit "$DIST_DIR/$base_name.dmg" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$DIST_DIR/$base_name.dmg"
+    xcrun stapler validate "$DIST_DIR/$base_name.dmg"
+  fi
 }
+
+if ! security find-identity -v -p codesigning | grep -Fq "$SIGNING_IDENTITY"; then
+  echo "Missing signing identity: $SIGNING_IDENTITY" >&2
+  exit 1
+fi
 
 echo "Building VigClean $VERSION for Apple Silicon..."
 build_swift_arch arm64
+ARM_BINARY="$BUILD_APPS_DIR/VigClean-arm64"
+capture_swift_product arm64 "$ARM_BINARY"
 
 echo "Building VigClean $VERSION for Intel..."
 build_swift_arch x86_64
+INTEL_BINARY="$BUILD_APPS_DIR/VigClean-x86_64"
+capture_swift_product x86_64 "$INTEL_BINARY"
 
-ARM_BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/release"
-INTEL_BUILD_DIR="$ROOT_DIR/.build/x86_64-apple-macosx/release"
-ARM_BINARY="$ARM_BUILD_DIR/VigClean"
-INTEL_BINARY="$INTEL_BUILD_DIR/VigClean"
+SOURCE_BUILD_DIR="$(swift build --show-bin-path --configuration release --arch x86_64)"
 UNIVERSAL_BINARY="$BUILD_APPS_DIR/VigClean-universal"
 
 create_icon
 
 echo "Creating app bundles..."
-create_app "arm64" "$ARM_BINARY" "$ARM_BUILD_DIR"
-create_app "x86_64" "$INTEL_BINARY" "$INTEL_BUILD_DIR"
+create_app "arm64" "$ARM_BINARY" "$SOURCE_BUILD_DIR"
+create_app "x86_64" "$INTEL_BINARY" "$SOURCE_BUILD_DIR"
 lipo -create "$ARM_BINARY" "$INTEL_BINARY" -output "$UNIVERSAL_BINARY"
-create_app "universal" "$UNIVERSAL_BINARY" "$ARM_BUILD_DIR"
+create_app "universal" "$UNIVERSAL_BINARY" "$SOURCE_BUILD_DIR"
+
+for binary in "$ARM_BINARY" "$INTEL_BINARY" "$UNIVERSAL_BINARY"; do
+  otool -l "$binary" | grep -A4 LC_BUILD_VERSION | grep -q "minos 13.0"
+done
 
 echo "Creating ZIP and DMG assets..."
 package_app "$BUILD_APPS_DIR/arm64/VigClean.app" "VigClean-$VERSION-arm64"

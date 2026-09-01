@@ -32,7 +32,7 @@ struct CleanerView: View {
         }
         .background(AppTheme.background)
         .tint(AppTheme.accent)
-        .onChange(of: selectedTab) { _, nextTab in
+        .onChange(of: selectedTab) { nextTab in
             if nextTab == .apps, !model.hasScannedApps {
                 model.scanApps()
             }

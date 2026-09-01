@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-18211C?style=flat-square&logo=apple&logoColor=white">
+  <img alt="macOS 13+" src="https://img.shields.io/badge/macOS-13%2B-18211C?style=flat-square&logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white">
   <img alt="SwiftUI" src="https://img.shields.io/badge/UI-SwiftUI-1FA35A?style=flat-square">
-  <img alt="Release 0.0.2" src="https://img.shields.io/badge/release-0.0.2-08783F?style=flat-square">
+  <img alt="Release 0.0.3" src="https://img.shields.io/badge/release-0.0.3-08783F?style=flat-square">
 </p>
 
 <p align="center">
@@ -29,9 +29,9 @@ The app focuses on practical cleanup work instead of a one-click black box: it s
   <img src="Docs/VigCleanOverview.png" width="900" alt="VigClean smart cleanup interface">
 </p>
 
-## VigClean 0.0.2
+## VigClean 0.0.3
 
-Version 0.0.2 introduces a redesigned interface, deterministic progress, a multi-layer deletion safety engine, recoverable cleanup by default, protected paths, cleanup history, expanded scanning, and signed automatic updates from GitHub Releases.
+Version 0.0.3 adds macOS Ventura 13 support, Developer ID signing, firmlink and symlink hardening, cleanup-path cleanability states, truthful allocated-size accounting, parent/child deduplication, operation limits, and cancellable cleanup.
 
 VigClean checks for releases every day using Sparkle. Update archives are verified with an EdDSA signature before extraction and installation. A manual **Check for Updates…** command is also available from the app menu.
 
@@ -136,7 +136,7 @@ Use this tab to understand overall storage usage:
 
 ## Build
 
-VigClean requires macOS 14 or later and Swift 6.
+VigClean requires macOS 13 Ventura or later. Building from source requires Swift 6.
 
 For end users, download the Universal DMG from [GitHub Releases](https://github.com/vigstudio/VigClean/releases/latest). A complete bilingual walkthrough is available at [vigclean-guide.netlify.app](https://vigclean-guide.netlify.app).
 
