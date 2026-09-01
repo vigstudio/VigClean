@@ -40,20 +40,33 @@ enum CleanupRisk: String, CaseIterable, Identifiable {
     }
 }
 
+enum CleanupPathCleanability: String, Hashable, Sendable {
+    case removable
+    case administratorRequired
+    case protected
+    case unavailable
+
+    var isSelectable: Bool {
+        self == .removable || self == .administratorRequired
+    }
+}
+
 struct CleanupPathEntry: Identifiable, Hashable, Sendable {
     let id: String
     let url: URL
     let bytes: Int64
-    let requiresAdmin: Bool
+    let cleanability: CleanupPathCleanability
     let children: [CleanupPathEntry]
 
-    init(url: URL, bytes: Int64, requiresAdmin: Bool, children: [CleanupPathEntry] = []) {
+    init(url: URL, bytes: Int64, cleanability: CleanupPathCleanability, children: [CleanupPathEntry] = []) {
         self.id = url.standardizedFileURL.path
         self.url = url
         self.bytes = bytes
-        self.requiresAdmin = requiresAdmin
+        self.cleanability = cleanability
         self.children = children
     }
+
+    var requiresAdmin: Bool { cleanability == .administratorRequired }
 
     var flattened: [CleanupPathEntry] {
         [self] + children.flatMap(\.flattened)

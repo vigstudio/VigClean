@@ -98,6 +98,8 @@ enum L10n {
         "moveTrash": [.vietnamese: "Chuyển vào Thùng rác", .english: "Move Selected to Trash", .japanese: "ゴミ箱に移動"],
         "related": [.vietnamese: "liên quan", .english: "related", .japanese: "関連"],
         "admin": [.vietnamese: "Cần admin", .english: "Admin", .japanese: "管理者"],
+        "protected": [.vietnamese: "Được bảo vệ", .english: "Protected", .japanese: "保護済み"],
+        "unavailable": [.vietnamese: "Không khả dụng", .english: "Unavailable", .japanese: "利用不可"],
         "language": [.vietnamese: "Ngôn ngữ", .english: "Language", .japanese: "言語"],
         "safe": [.vietnamese: "An toàn", .english: "Safe", .japanese: "安全"],
         "review": [.vietnamese: "Kiểm tra", .english: "Review", .japanese: "確認"],

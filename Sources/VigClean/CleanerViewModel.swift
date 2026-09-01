@@ -53,7 +53,7 @@ final class CleanerViewModel: ObservableObject {
         findings.compactMap { finding in
             let entries = finding.pathEntries
                 .flatMap { minimalSelectedEntries($0, selectedIDs: selectedPathIDs) }
-                .filter { !isProtected($0) }
+                .filter { cleanability(for: $0).isSelectable }
             guard !entries.isEmpty else { return nil }
             return finding.withPathEntries(entries)
         }
@@ -74,7 +74,7 @@ final class CleanerViewModel: ObservableObject {
         findings
             .flatMap(\.pathEntries)
             .flatMap(\.flattened)
-            .filter { selectedPathIDs.contains($0.id) }
+            .filter { selectedPathIDs.contains($0.id) && cleanability(for: $0).isSelectable }
             .reduce(Int64(0)) { $0 + $1.bytes }
     }
 
@@ -125,8 +125,17 @@ final class CleanerViewModel: ObservableObject {
             }
             guard !Task.isCancelled else { return }
             findings = nextFindings
-            selectedIDs = Set(nextFindings.filter(\.selectedByDefault).map(\.id))
-            selectedPathIDs = Set(nextFindings.filter(\.selectedByDefault).flatMap(\.pathEntries).flatMap(\.flattened).map(\.id))
+            selectedPathIDs = Set(
+                nextFindings.filter(\.selectedByDefault)
+                    .flatMap(\.pathEntries)
+                    .flatMap(\.flattened)
+                    .filter { cleanability(for: $0).isSelectable }
+                    .map(\.id)
+            )
+            selectedIDs = Set(nextFindings.filter { finding in
+                let selectable = finding.pathEntries.flatMap(\.flattened).filter { cleanability(for: $0).isSelectable }
+                return finding.selectedByDefault && !selectable.isEmpty && selectable.allSatisfy { selectedPathIDs.contains($0.id) }
+            }.map(\.id))
             status = nextFindings.isEmpty ? "No cleanup targets found" : "Found \(nextFindings.count) cleanup targets"
             progressDetail = "Scan complete"
             hasScannedClean = true
@@ -311,7 +320,7 @@ final class CleanerViewModel: ObservableObject {
     }
 
     func toggle(_ finding: CleanupFinding) {
-        let ids = Set(finding.pathEntries.flatMap(\.flattened).filter { !isProtected($0) }.map(\.id))
+        let ids = Set(finding.pathEntries.flatMap(\.flattened).filter { cleanability(for: $0).isSelectable }.map(\.id))
         if ids.isSubset(of: selectedPathIDs) {
             selectedIDs.remove(finding.id)
             selectedPathIDs.subtract(ids)
@@ -322,8 +331,8 @@ final class CleanerViewModel: ObservableObject {
     }
 
     func togglePath(_ entry: CleanupPathEntry, in finding: CleanupFinding) {
-        guard !isProtected(entry) else { return }
-        let ids = Set(entry.flattened.map(\.id))
+        guard cleanability(for: entry).isSelectable else { return }
+        let ids = Set(entry.flattened.filter { cleanability(for: $0).isSelectable }.map(\.id))
         if ids.isSubset(of: selectedPathIDs) {
             selectedPathIDs.subtract(ids)
         } else {
@@ -331,7 +340,7 @@ final class CleanerViewModel: ObservableObject {
         }
 
         normalizeParentSelection(in: finding.pathEntries, selectedIDs: &selectedPathIDs)
-        let findingIDs = Set(finding.pathEntries.flatMap(\.flattened).map(\.id))
+        let findingIDs = Set(finding.pathEntries.flatMap(\.flattened).filter { cleanability(for: $0).isSelectable }.map(\.id))
         if findingIDs.isSubset(of: selectedPathIDs) {
             selectedIDs.insert(finding.id)
         } else {
@@ -340,11 +349,17 @@ final class CleanerViewModel: ObservableObject {
     }
 
     func isSelected(_ entry: CleanupPathEntry) -> Bool {
-        Set(entry.flattened.map(\.id)).isSubset(of: selectedPathIDs)
+        let ids = Set(entry.flattened.filter { cleanability(for: $0).isSelectable }.map(\.id))
+        return !ids.isEmpty && ids.isSubset(of: selectedPathIDs)
     }
 
     func isProtected(_ entry: CleanupPathEntry) -> Bool {
         isPathProtected(entry.url)
+    }
+
+    func cleanability(for entry: CleanupPathEntry) -> CleanupPathCleanability {
+        if isProtected(entry) { return .protected }
+        return entry.cleanability
     }
 
     func isPathProtected(_ url: URL) -> Bool {
@@ -383,7 +398,7 @@ final class CleanerViewModel: ObservableObject {
                 .filter { $0.risk != .personal }
                 .flatMap(\.pathEntries)
                 .flatMap(\.flattened)
-                .filter { !isProtected($0) }
+                .filter { cleanability(for: $0).isSelectable }
                 .map(\.id)
         )
     }
@@ -433,7 +448,7 @@ final class CleanerViewModel: ObservableObject {
                 title: item.title,
                 detail: item.purpose,
                 pathEntries: [
-                    CleanupPathEntry(url: item.path, bytes: item.bytes, requiresAdmin: false)
+                    CleanupPathEntry(url: item.path, bytes: item.bytes, cleanability: .removable)
                 ],
                 bytes: item.bytes,
                 risk: item.recommendation == .removable ? .review : .personal,
@@ -568,6 +583,6 @@ private extension CleanupFinding {
 
 private extension CleanupPathEntry {
     func withoutChildren() -> CleanupPathEntry {
-        CleanupPathEntry(url: url, bytes: bytes, requiresAdmin: requiresAdmin)
+        CleanupPathEntry(url: url, bytes: bytes, cleanability: cleanability)
     }
 }

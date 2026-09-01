@@ -4,6 +4,7 @@ struct CleanupScanner: Sendable {
     private let home = FileManager.default.homeDirectoryForCurrentUser
     private let sizeCache = DirectorySizeCache()
     private var fileManager: FileManager { .default }
+    private var cleanabilityClassifier: CleanabilityClassifier { CleanabilityClassifier(home: home) }
 
     func scan(includePrivacySensitiveFolders: Bool, progress: @MainActor (String, Double) -> Void = { _, _ in }) async -> [CleanupFinding] {
         var findings: [CleanupFinding] = []
@@ -682,10 +683,11 @@ struct CleanupScanner: Sendable {
         return unique(urls)
             .filter { fileManager.fileExists(atPath: $0.path) }
             .map { url in
-                CleanupPathEntry(
+                let requiresAdmin = requiresAdministratorPrivileges(url)
+                return CleanupPathEntry(
                     url: url,
                     bytes: directorySize(url),
-                    requiresAdmin: requiresAdministratorPrivileges(url),
+                    cleanability: cleanabilityClassifier.classify(url, requiresAdministrator: requiresAdmin),
                     children: childEntries(for: url)
                 )
             }
@@ -709,10 +711,11 @@ struct CleanupScanner: Sendable {
                 return values?.isSymbolicLink != true
             }
             .map { child in
-                CleanupPathEntry(
+                let requiresAdmin = requiresAdministratorPrivileges(child)
+                return CleanupPathEntry(
                     url: child,
                     bytes: directorySize(child),
-                    requiresAdmin: requiresAdministratorPrivileges(child)
+                    cleanability: cleanabilityClassifier.classify(child, requiresAdministrator: requiresAdmin)
                 )
             }
             .filter { $0.bytes > 0 }

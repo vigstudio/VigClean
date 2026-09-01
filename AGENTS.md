@@ -97,12 +97,13 @@ Risk levels:
 - A confirmation dialog shows selected count, total size, and risky groups.
 - System roots, user roots, and sensitive subtrees are blocked by `DeletionSafetyValidator`.
 - Users can protect additional paths. Protected paths are excluded from selection and deletion.
+- Scan results classify every cleanup path as removable, administrator-required, protected, or unavailable. Protected and unavailable paths cannot be selected.
 - Admin permission is requested only when required and enabled.
 - Related apps can be quit before their data is removed.
 - Downloads and Documents scanning is disabled by default.
 - Cleanup and uninstall operations are written to local history.
 
-Important limitation: the current validator protects standardized paths but does not yet provide the complete firmlink canonicalization, symlink race defense, cleanability pre-filter, and operation caps described in the Roadmap.
+Important limitation: the current validator protects standardized paths but does not yet provide the complete firmlink canonicalization, symlink race defense, and operation caps described in the Roadmap.
 
 ### Application removal
 
@@ -253,7 +254,7 @@ Features that should not be copied without substantial validation:
 
 ### Engine safety and truthful results
 
-- `PLANNED` Add a cleanability pre-filter so UI results distinguish removable, admin-required, protected, and unavailable items.
+- `DONE` Add a cleanability pre-filter so UI results distinguish removable, admin-required, protected, and unavailable items.
 - `PLANNED` Canonicalize known macOS firmlinks before protected-path comparison.
 - `PLANNED` Strengthen symlink handling and revalidate resolved targets immediately before deletion.
 - `PLANNED` Add explicit per-operation and total-item safety caps.
@@ -370,6 +371,7 @@ For a release:
 - 2026-09-01: Replaced the guide's marketing-heavy copy with task-based product documentation and troubleshooting.
 - 2026-09-01: After reviewing MacSai, prioritized cleanability filtering, chunked cancellable deletion, dry run, duplicate detection, and incremental scanning. Deferred higher-risk binary thinning and APFS consolidation.
 - 2026-09-01: Established this `AGENTS.md` as the single durable project-memory and roadmap file for future sessions.
+- 2026-09-01: Classified cleanup paths before selection and made protected or unavailable results non-selectable while preserving explicit administrator-required results.
 
 ## Session log
 
@@ -401,6 +403,14 @@ For a release:
 - Reviewed MacSai's current README, cleanup modules, safety guard, cleanability filter, cleaning engine, duplicate pipeline, FSEvents monitor, uninstaller, and BSD 3-Clause license.
 - Recorded reusable methods, risks, rejected ideas, and an ordered implementation roadmap in this file.
 - Verification: compared research findings against VigClean's current scanner, validator, disk analyzer, view model, and repository state.
+- Commit: included with this entry.
+
+### 2026-09-01: Cleanability classification
+
+- Outcome: cleanup paths now expose removable, administrator-required, protected, and unavailable states.
+- Important behavior or files changed: added a cleanability classifier, made protected and unavailable paths non-selectable, surfaced localized status badges, and excluded non-selectable paths from cleanup accounting.
+- Verification performed: `swift test` passed with five tests across cleanability classification and deletion safety suites.
+- Remaining limitation or follow-up: firmlink canonicalization and stronger symlink revalidation remain the next roadmap milestone.
 - Commit: included with this entry.
 
 ## Session log template

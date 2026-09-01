@@ -303,7 +303,7 @@ private struct CleanTab: View {
                             finding: finding,
                             isSelected: model.selectedIDs.contains(finding.id),
                             isPathSelected: { model.isSelected($0) },
-                            isPathProtected: { model.isProtected($0) },
+                            pathCleanability: { model.cleanability(for: $0) },
                             onToggle: { model.toggle(finding) },
                             onTogglePath: { model.togglePath($0, in: finding) },
                             onToggleProtection: { model.toggleProtection($0) },
@@ -1251,7 +1251,7 @@ private struct FindingRow: View {
     let finding: CleanupFinding
     let isSelected: Bool
     let isPathSelected: (CleanupPathEntry) -> Bool
-    let isPathProtected: (CleanupPathEntry) -> Bool
+    let pathCleanability: (CleanupPathEntry) -> CleanupPathCleanability
     let onToggle: () -> Void
     let onTogglePath: (CleanupPathEntry) -> Void
     let onToggleProtection: (CleanupPathEntry) -> Void
@@ -1265,6 +1265,7 @@ private struct FindingRow: View {
                 Toggle("", isOn: Binding(get: { isSelected }, set: { _ in onToggle() }))
                     .labelsHidden()
                     .padding(.top, 8)
+                    .disabled(!finding.pathEntries.flatMap(\.flattened).contains { pathCleanability($0).isSelectable })
 
                 Image(systemName: findingIcon)
                     .font(.system(size: 15, weight: .semibold))
@@ -1320,7 +1321,7 @@ private struct FindingRow: View {
                             entry: entry,
                             isSelected: isPathSelected,
                             toggle: onTogglePath,
-                            isProtected: isPathProtected,
+                            cleanability: pathCleanability,
                             toggleProtection: onToggleProtection,
                             language: language
                         )
@@ -1377,7 +1378,7 @@ private struct PathEntryRow: View {
     let entry: CleanupPathEntry
     let isSelected: (CleanupPathEntry) -> Bool
     let toggle: (CleanupPathEntry) -> Void
-    let isProtected: (CleanupPathEntry) -> Bool
+    let cleanability: (CleanupPathEntry) -> CleanupPathCleanability
     let toggleProtection: (CleanupPathEntry) -> Void
     let language: AppLanguage
     @State private var expanded = false
@@ -1386,14 +1387,14 @@ private struct PathEntryRow: View {
         entry: CleanupPathEntry,
         isSelected: @escaping (CleanupPathEntry) -> Bool,
         toggle: @escaping (CleanupPathEntry) -> Void,
-        isProtected: @escaping (CleanupPathEntry) -> Bool = { _ in false },
+        cleanability: @escaping (CleanupPathEntry) -> CleanupPathCleanability = { _ in .removable },
         toggleProtection: @escaping (CleanupPathEntry) -> Void = { _ in },
         language: AppLanguage
     ) {
         self.entry = entry
         self.isSelected = isSelected
         self.toggle = toggle
-        self.isProtected = isProtected
+        self.cleanability = cleanability
         self.toggleProtection = toggleProtection
         self.language = language
     }
@@ -1419,7 +1420,7 @@ private struct PathEntryRow: View {
 
                 Toggle("", isOn: Binding(get: { isSelected(entry) }, set: { _ in toggle(entry) }))
                     .labelsHidden()
-                    .disabled(isProtected(entry))
+                    .disabled(!cleanability(entry).isSelectable)
 
                 Image(systemName: entryIcon)
                     .foregroundStyle(.secondary)
@@ -1430,9 +1431,7 @@ private struct PathEntryRow: View {
                         Text(entry.url.lastPathComponent.isEmpty ? entry.url.path : entry.url.lastPathComponent)
                             .font(.caption.weight(.medium))
                             .lineLimit(1)
-                        if entry.requiresAdmin {
-                            AdminBadge(language: language)
-                        }
+                        CleanabilityBadge(cleanability: cleanability(entry), language: language)
                         Spacer()
                         Text(entry.bytes.storageText)
                             .font(.caption.monospacedDigit())
@@ -1440,11 +1439,11 @@ private struct PathEntryRow: View {
                         Button {
                             toggleProtection(entry)
                         } label: {
-                            Image(systemName: isProtected(entry) ? "shield.fill" : "shield")
-                                .foregroundStyle(isProtected(entry) ? AppTheme.accent : Color.secondary)
+                            Image(systemName: cleanability(entry) == .protected ? "shield.fill" : "shield")
+                                .foregroundStyle(cleanability(entry) == .protected ? AppTheme.accent : Color.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help(isProtected(entry) ? "Remove protection" : "Protect this path")
+                        .help(cleanability(entry) == .protected ? "Remove protection" : "Protect this path")
                     }
                     Text(entry.url.path)
                         .font(.caption2)
@@ -1461,7 +1460,7 @@ private struct PathEntryRow: View {
                             entry: child,
                             isSelected: isSelected,
                             toggle: toggle,
-                            isProtected: isProtected,
+                            cleanability: cleanability,
                             toggleProtection: toggleProtection,
                             language: language
                         )
@@ -1489,6 +1488,40 @@ private struct AdminBadge: View {
             .padding(.vertical, 2)
             .background(Color.red.opacity(0.14), in: Capsule())
             .foregroundStyle(.red)
+    }
+}
+
+private struct CleanabilityBadge: View {
+    let cleanability: CleanupPathCleanability
+    let language: AppLanguage
+
+    var body: some View {
+        if cleanability != .removable {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(color.opacity(0.14), in: Capsule())
+                .foregroundStyle(color)
+        }
+    }
+
+    private var label: String {
+        switch cleanability {
+        case .removable: L10n.text("canDelete", language)
+        case .administratorRequired: L10n.text("admin", language)
+        case .protected: L10n.text("protected", language)
+        case .unavailable: L10n.text("unavailable", language)
+        }
+    }
+
+    private var color: Color {
+        switch cleanability {
+        case .removable: AppTheme.accent
+        case .administratorRequired: .orange
+        case .protected: AppTheme.accent
+        case .unavailable: .secondary
+        }
     }
 }
 
