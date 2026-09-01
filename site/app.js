@@ -8,8 +8,12 @@ const localizedImages = document.querySelectorAll("[data-alt-vi][data-alt-en]");
 function applyLanguage(language) {
   document.documentElement.lang = language;
   document.title = language === "vi"
-    ? "VigClean | Hướng dẫn sử dụng"
-    : "VigClean | User Guide";
+    ? "Hướng dẫn sử dụng VigClean"
+    : "VigClean User Guide";
+
+  document.querySelector('meta[name="description"]').content = language === "vi"
+    ? "Hướng dẫn cài đặt và sử dụng VigClean trên macOS, có ảnh minh họa bằng tiếng Việt và tiếng Anh."
+    : "A visual guide to installing and using VigClean on macOS, available in English and Vietnamese.";
 
   translatableElements.forEach((element) => {
     element.textContent = element.dataset[language];
@@ -28,16 +32,24 @@ languageButton.addEventListener("click", () => {
 });
 
 const savedLanguage = localStorage.getItem("vigclean-language");
-const preferredLanguage = navigator.language.toLowerCase().startsWith("vi") ? "vi" : "en";
+const preferredLanguage = "vi";
 applyLanguage(savedLanguage === "vi" || savedLanguage === "en" ? savedLanguage : preferredLanguage);
 
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add("is-visible");
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.14 });
+const contentsLinks = [...document.querySelectorAll(".contents a")];
+const documentedSections = contentsLinks
+  .map((link) => document.querySelector(link.getAttribute("href")))
+  .filter(Boolean);
 
-document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    contentsLinks.forEach((link) => {
+      const isCurrent = link.getAttribute("href") === `#${entry.target.id}`;
+      link.classList.toggle("active", isCurrent);
+      if (isCurrent) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  });
+}, { rootMargin: "-18% 0px -72% 0px", threshold: 0 });
+
+documentedSections.forEach((section) => sectionObserver.observe(section));

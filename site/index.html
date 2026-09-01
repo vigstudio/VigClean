@@ -1,167 +1,156 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Hướng dẫn sử dụng VigClean bằng tiếng Việt và English.">
-  <meta name="theme-color" content="#f5f7f5">
-  <title>VigClean Guide | Hướng dẫn sử dụng</title>
+  <meta name="description" content="Hướng dẫn cài đặt và sử dụng VigClean trên macOS, có ảnh minh họa bằng tiếng Việt và tiếng Anh.">
+  <meta name="theme-color" content="#f6f8f6">
+  <title>Hướng dẫn sử dụng VigClean</title>
   <link rel="icon" href="assets/logo.webp">
   <link rel="preload" as="image" href="assets/screenshots/clean-progress.webp" fetchpriority="high">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Bỏ qua điều hướng / Skip navigation</a>
-
+  <a class="skip-link" href="#guide" data-vi="Đi thẳng tới hướng dẫn" data-en="Skip to the guide">Đi thẳng tới hướng dẫn</a>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="VigClean home">
-      <img src="assets/logo.webp" width="42" height="42" alt="VigClean">
-      <span>VigClean</span>
-    </a>
-    <nav aria-label="Primary navigation">
+    <a class="brand" href="#top" aria-label="VigClean"><img src="assets/logo.webp" width="38" height="38" alt=""><span>VigClean</span></a>
+    <nav aria-label="Điều hướng chính">
       <a href="#install" data-vi="Cài đặt" data-en="Install">Cài đặt</a>
-      <a href="#workflow" data-vi="Sử dụng" data-en="Use">Sử dụng</a>
-      <a href="#safety" data-vi="An toàn" data-en="Safety">An toàn</a>
-      <a href="#updates" data-vi="Cập nhật" data-en="Updates">Cập nhật</a>
+      <a href="#clean" data-vi="Dọn dẹp" data-en="Clean">Dọn dẹp</a>
+      <a href="#apps" data-vi="Gỡ ứng dụng" data-en="Uninstall apps">Gỡ ứng dụng</a>
+      <a href="#troubleshooting" data-vi="Xử lý lỗi" data-en="Troubleshooting">Xử lý lỗi</a>
     </nav>
     <div class="header-actions">
-      <button class="language-switch" type="button">
-        <span data-language-label>English</span>
-      </button>
-      <a class="download-button" href="https://github.com/vigstudio/VigClean/releases/latest" data-vi="Tải VigClean" data-en="Download">Tải VigClean</a>
+      <button class="language-switch" type="button" aria-label="Switch language"><span data-language-label>English</span></button>
+      <a class="download-button" href="https://github.com/vigstudio/VigClean/releases/latest" data-vi="Tải xuống" data-en="Download">Tải xuống</a>
     </div>
   </header>
 
-  <main id="main">
-    <section class="hero" id="top">
-      <div class="hero-copy reveal">
-        <p class="eyebrow" data-vi="Hướng dẫn chính thức" data-en="Official guide">Hướng dẫn chính thức</p>
-        <h1 data-vi="Biết rõ trước khi dọn." data-en="Know before you clean.">Biết rõ trước khi dọn.</h1>
-        <p class="hero-summary" data-vi="Quét, xem lại và giải phóng dung lượng trên macOS với tiến trình trực quan và lớp bảo vệ nhiều tầng." data-en="Scan, review, and reclaim macOS storage with visible progress and layered protection.">Quét, xem lại và giải phóng dung lượng trên macOS với tiến trình trực quan và lớp bảo vệ nhiều tầng.</p>
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="kicker" data-vi="Tài liệu dành cho macOS" data-en="Guide for macOS">Tài liệu dành cho macOS</p>
+        <h1 data-vi="Hướng dẫn sử dụng VigClean" data-en="VigClean user guide">Hướng dẫn sử dụng VigClean</h1>
+        <p class="hero-summary" data-vi="Cài đặt, quét và dọn máy an toàn. Mỗi thao tác đều có ảnh và giải thích rõ kết quả." data-en="Install, scan, and clean your Mac safely. Every action includes a screenshot and a clear explanation.">Cài đặt, quét và dọn máy an toàn. Mỗi thao tác đều có ảnh và giải thích rõ kết quả.</p>
         <div class="hero-actions">
-          <a class="primary-cta" href="#install" data-vi="Bắt đầu sử dụng" data-en="Get started">Bắt đầu sử dụng</a>
-          <a class="secondary-cta" href="https://github.com/vigstudio/VigClean" data-vi="Xem mã nguồn" data-en="View source">Xem mã nguồn</a>
+          <a class="primary-cta" href="#install" data-vi="Cài đặt VigClean" data-en="Install VigClean">Cài đặt VigClean</a>
+          <a class="text-link" href="#clean" data-vi="Quét lần đầu" data-en="Run your first scan">Quét lần đầu</a>
         </div>
       </div>
-      <figure class="hero-visual reveal">
-        <img src="assets/screenshots/clean-progress.webp" width="1600" height="1074" fetchpriority="high" alt="VigClean đang quét với thanh tiến trình và phần trăm" data-alt-vi="VigClean đang quét với thanh tiến trình và phần trăm" data-alt-en="VigClean scanning with a progress bar and percentage">
+      <figure class="hero-visual">
+        <img src="assets/screenshots/clean-progress.webp" width="1600" height="1075" fetchpriority="high" alt="VigClean hiển thị phần trăm và đường dẫn đang quét" data-alt-vi="VigClean hiển thị phần trăm và đường dẫn đang quét" data-alt-en="VigClean showing scan percentage and the current path">
       </figure>
     </section>
 
-    <section class="trust-strip" aria-label="Product principles">
-      <p data-vi="Xử lý tại máy" data-en="On-device processing">Xử lý tại máy</p>
-      <p data-vi="Chuyển vào Thùng rác mặc định" data-en="Trash by default">Chuyển vào Thùng rác mặc định</p>
-      <p data-vi="Kiểm tra cập nhật tự động" data-en="Automatic update checks">Kiểm tra cập nhật tự động</p>
-    </section>
-
-    <section class="guide-section install-section" id="install">
-      <div class="section-heading reveal">
-        <h2 data-vi="Cài đặt trong vài phút" data-en="Install in minutes">Cài đặt trong vài phút</h2>
-        <p data-vi="Tải bản Universal nếu bạn không chắc máy dùng Apple Silicon hay Intel." data-en="Choose the Universal build if you are unsure whether your Mac uses Apple Silicon or Intel.">Tải bản Universal nếu bạn không chắc máy dùng Apple Silicon hay Intel.</p>
-      </div>
-      <div class="install-grid">
-        <article class="install-feature reveal">
-          <span class="step-number">1</span>
-          <h3 data-vi="Tải bản phát hành" data-en="Download the release">Tải bản phát hành</h3>
-          <p data-vi="Mở trang GitHub Releases và tải tệp DMG phù hợp." data-en="Open GitHub Releases and download the appropriate DMG.">Mở trang GitHub Releases và tải tệp DMG phù hợp.</p>
-        </article>
-        <article class="install-feature reveal">
-          <span class="step-number">2</span>
-          <h3 data-vi="Đưa vào Applications" data-en="Move to Applications">Đưa vào Applications</h3>
-          <p data-vi="Mở DMG, kéo VigClean vào thư mục Applications, sau đó khởi chạy." data-en="Open the DMG, move VigClean to Applications, then launch it.">Mở DMG, kéo VigClean vào thư mục Applications, sau đó khởi chạy.</p>
-        </article>
-        <article class="install-feature reveal">
-          <span class="step-number">3</span>
-          <h3 data-vi="Cho phép khi cần" data-en="Approve when needed">Cho phép khi cần</h3>
-          <p data-vi="macOS chỉ hỏi quyền khi VigClean cần đọc hoặc xóa vị trí được bảo vệ." data-en="macOS only asks for permission when VigClean needs a protected location.">macOS chỉ hỏi quyền khi VigClean cần đọc hoặc xóa vị trí được bảo vệ.</p>
-        </article>
+    <section class="start-here" aria-labelledby="start-title">
+      <div><h2 id="start-title" data-vi="Bạn muốn làm gì?" data-en="What do you want to do?">Bạn muốn làm gì?</h2><p data-vi="Chọn đúng công việc để đi thẳng tới phần hướng dẫn." data-en="Choose a task to jump directly to its instructions.">Chọn đúng công việc để đi thẳng tới phần hướng dẫn.</p></div>
+      <div class="task-links">
+        <a href="#install"><strong data-vi="Cài ứng dụng" data-en="Install the app">Cài ứng dụng</strong><span data-vi="Tải đúng bản và mở lần đầu" data-en="Download the right build and open it">Tải đúng bản và mở lần đầu</span></a>
+        <a href="#clean"><strong data-vi="Dọn tệp không cần thiết" data-en="Clean unnecessary files">Dọn tệp không cần thiết</strong><span data-vi="Quét, xem lại rồi mới xóa" data-en="Scan, review, then remove">Quét, xem lại rồi mới xóa</span></a>
+        <a href="#apps"><strong data-vi="Gỡ ứng dụng" data-en="Uninstall an app">Gỡ ứng dụng</strong><span data-vi="Tìm cả dữ liệu còn sót lại" data-en="Find related leftover data">Tìm cả dữ liệu còn sót lại</span></a>
+        <a href="#disk"><strong data-vi="Tìm thứ đang chiếm chỗ" data-en="Find what uses your storage">Tìm thứ đang chiếm chỗ</strong><span data-vi="Xem thư mục và tệp dung lượng lớn" data-en="Inspect large folders and files">Xem thư mục và tệp dung lượng lớn</span></a>
       </div>
     </section>
 
-    <section class="guide-section workflow-section" id="workflow">
-      <div class="section-heading reveal">
-        <h2 data-vi="Một quy trình, bốn khu vực" data-en="One workflow, four areas">Một quy trình, bốn khu vực</h2>
-        <p data-vi="Mỗi khu vực giải quyết một công việc riêng để bạn không phải đoán nút nào sẽ tác động đến dữ liệu nào." data-en="Each area handles one job, so you always know which data an action can affect.">Mỗi khu vực giải quyết một công việc riêng để bạn không phải đoán nút nào sẽ tác động đến dữ liệu nào.</p>
-      </div>
+    <div class="docs-layout" id="guide">
+      <aside class="contents" aria-label="Mục lục">
+        <p data-vi="Trong hướng dẫn này" data-en="In this guide">Trong hướng dẫn này</p>
+        <a href="#install" data-vi="Cài đặt" data-en="Installation">Cài đặt</a>
+        <a href="#first-look" data-vi="Hiểu giao diện" data-en="Know the interface">Hiểu giao diện</a>
+        <a href="#clean" data-vi="Quét và dọn dẹp" data-en="Scan and clean">Quét và dọn dẹp</a>
+        <a href="#apps" data-vi="Gỡ ứng dụng" data-en="Uninstall apps">Gỡ ứng dụng</a>
+        <a href="#disk" data-vi="Phân tích ổ đĩa" data-en="Analyze storage">Phân tích ổ đĩa</a>
+        <a href="#history" data-vi="Xem lịch sử" data-en="Review history">Xem lịch sử</a>
+        <a href="#updates" data-vi="Cập nhật" data-en="Updates">Cập nhật</a>
+        <a href="#troubleshooting" data-vi="Xử lý lỗi" data-en="Troubleshooting">Xử lý lỗi</a>
+      </aside>
 
-      <article class="workflow-feature reveal">
-        <div class="feature-copy">
-          <h3 data-vi="Làm sạch có tiến trình" data-en="Cleanup with visible progress">Làm sạch có tiến trình</h3>
-          <p data-vi="Bấm Quét, theo dõi đường dẫn hiện tại và phần trăm hoàn thành. Có thể hủy bất cứ lúc nào mà không thay đổi tệp." data-en="Select Scan, follow the current path and completion percentage, or cancel at any time without changing files.">Bấm Quét, theo dõi đường dẫn hiện tại và phần trăm hoàn thành. Có thể hủy bất cứ lúc nào mà không thay đổi tệp.</p>
-          <ul>
-            <li data-vi="Màu xanh: dữ liệu có thể tạo lại" data-en="Green: rebuildable data">Màu xanh: dữ liệu có thể tạo lại</li>
-            <li data-vi="Màu cam: nên xem lại" data-en="Orange: review recommended">Màu cam: nên xem lại</li>
-            <li data-vi="Dữ liệu cá nhân không được chọn mặc định" data-en="Personal data is not selected by default">Dữ liệu cá nhân không được chọn mặc định</li>
-          </ul>
-        </div>
-        <figure><img src="assets/screenshots/clean-progress.webp" width="1600" height="1074" loading="lazy" alt="Tiến trình quét VigClean" data-alt-vi="Tiến trình quét VigClean" data-alt-en="VigClean scan progress"></figure>
+      <article class="guide-content">
+        <section class="doc-section" id="install">
+          <div class="section-heading"><h2 data-vi="Cài đặt VigClean" data-en="Install VigClean">Cài đặt VigClean</h2><p data-vi="Bạn chỉ cần tải tệp DMG, chép ứng dụng vào Applications và mở ứng dụng." data-en="Download the DMG, copy the app to Applications, and open it.">Bạn chỉ cần tải tệp DMG, chép ứng dụng vào Applications và mở ứng dụng.</p></div>
+          <ol class="instructions">
+            <li><div class="instruction-number">1</div><div><h3 data-vi="Tải tệp DMG" data-en="Download the DMG">Tải tệp DMG</h3><p data-vi="Mở GitHub Releases. Nếu không biết máy dùng chip nào, hãy tải VigClean Universal DMG." data-en="Open GitHub Releases. If you do not know which chip your Mac uses, download the VigClean Universal DMG.">Mở GitHub Releases. Nếu không biết máy dùng chip nào, hãy tải VigClean Universal DMG.</p><a class="inline-action" href="https://github.com/vigstudio/VigClean/releases/latest" data-vi="Mở trang tải xuống" data-en="Open downloads">Mở trang tải xuống</a></div></li>
+            <li><div class="instruction-number">2</div><div><h3 data-vi="Chép vào Applications" data-en="Copy to Applications">Chép vào Applications</h3><p data-vi="Mở tệp DMG, kéo VigClean vào thư mục Applications, sau đó tháo ổ đĩa cài đặt." data-en="Open the DMG, drag VigClean into Applications, then eject the installer disk.">Mở tệp DMG, kéo VigClean vào thư mục Applications, sau đó tháo ổ đĩa cài đặt.</p></div></li>
+            <li><div class="instruction-number">3</div><div><h3 data-vi="Mở ứng dụng lần đầu" data-en="Open the app for the first time">Mở ứng dụng lần đầu</h3><p data-vi="Mở Applications và bấm đúp VigClean. Nếu macOS chặn ứng dụng, bấm chuột phải vào VigClean, chọn Open rồi xác nhận Open." data-en="Open Applications and double-click VigClean. If macOS blocks it, right-click VigClean, choose Open, then confirm Open.">Mở Applications và bấm đúp VigClean. Nếu macOS chặn ứng dụng, bấm chuột phải vào VigClean, chọn Open rồi xác nhận Open.</p></div></li>
+          </ol>
+          <div class="note"><strong data-vi="Nên dùng bản nào?" data-en="Which build should I use?">Nên dùng bản nào?</strong><span data-vi="Universal chạy trên cả Apple Silicon và Intel. Bản arm64 nhỏ hơn và chỉ dành cho Apple Silicon." data-en="Universal works on both Apple Silicon and Intel. The smaller arm64 build is only for Apple Silicon.">Universal chạy trên cả Apple Silicon và Intel. Bản arm64 nhỏ hơn và chỉ dành cho Apple Silicon.</span></div>
+        </section>
+
+        <section class="doc-section" id="first-look">
+          <div class="section-heading"><h2 data-vi="Hiểu giao diện trước khi xóa" data-en="Know the interface before deleting">Hiểu giao diện trước khi xóa</h2><p data-vi="VigClean chia công việc thành bốn khu vực ở thanh bên trái." data-en="VigClean separates its tools into four areas in the left sidebar.">VigClean chia công việc thành bốn khu vực ở thanh bên trái.</p></div>
+          <dl class="area-list">
+            <div><dt data-vi="Làm sạch" data-en="Clean">Làm sạch</dt><dd data-vi="Quét cache, log, tệp tạm và dữ liệu có thể tạo lại." data-en="Scan caches, logs, temporary files, and rebuildable data.">Quét cache, log, tệp tạm và dữ liệu có thể tạo lại.</dd></div>
+            <div><dt data-vi="Ứng dụng" data-en="Applications">Ứng dụng</dt><dd data-vi="Gỡ app cùng cache, cấu hình và dữ liệu hỗ trợ liên quan." data-en="Remove an app together with related caches, settings, and support data.">Gỡ app cùng cache, cấu hình và dữ liệu hỗ trợ liên quan.</dd></div>
+            <div><dt data-vi="Ổ đĩa" data-en="Storage">Ổ đĩa</dt><dd data-vi="Tìm thư mục và tệp lớn để bạn tự quyết định mục cần xử lý." data-en="Find large folders and files so you can decide what to handle.">Tìm thư mục và tệp lớn để bạn tự quyết định mục cần xử lý.</dd></div>
+            <div><dt data-vi="Lịch sử" data-en="History">Lịch sử</dt><dd data-vi="Xem dung lượng đã thu hồi, số mục đã xử lý và lỗi của mỗi lần chạy." data-en="See recovered space, processed items, and errors for each run.">Xem dung lượng đã thu hồi, số mục đã xử lý và lỗi của mỗi lần chạy.</dd></div>
+          </dl>
+        </section>
+
+        <section class="doc-section" id="clean">
+          <div class="section-heading"><h2 data-vi="Quét và dọn dẹp" data-en="Scan and clean">Quét và dọn dẹp</h2><p data-vi="Quét không xóa tệp. VigClean chỉ thay đổi dữ liệu sau khi bạn xác nhận danh sách đã chọn." data-en="Scanning does not delete files. VigClean changes data only after you confirm the selected list.">Quét không xóa tệp. VigClean chỉ thay đổi dữ liệu sau khi bạn xác nhận danh sách đã chọn.</p></div>
+          <figure class="guide-shot"><img src="assets/screenshots/clean-progress.webp" width="1600" height="1075" loading="lazy" alt="Màn hình Làm sạch với phần trăm quét và danh sách hạng mục" data-alt-vi="Màn hình Làm sạch với phần trăm quét và danh sách hạng mục" data-alt-en="Clean screen with scan percentage and cleanup categories"><figcaption data-vi="Trong lúc quét, phần trăm, đường dẫn hiện tại và nút Hủy luôn hiển thị ở đầu cửa sổ." data-en="During a scan, the percentage, current path, and Cancel button remain visible at the top.">Trong lúc quét, phần trăm, đường dẫn hiện tại và nút Hủy luôn hiển thị ở đầu cửa sổ.</figcaption></figure>
+          <ol class="instructions compact">
+            <li><div class="instruction-number">1</div><div><h3 data-vi="Bấm Quét" data-en="Select Scan">Bấm Quét</h3><p data-vi="Chờ tiến trình đạt 100%. Bạn có thể bấm Hủy mà không làm thay đổi tệp." data-en="Wait for progress to reach 100%. You can cancel without changing any files.">Chờ tiến trình đạt 100%. Bạn có thể bấm Hủy mà không làm thay đổi tệp.</p></div></li>
+            <li><div class="instruction-number">2</div><div><h3 data-vi="Xem lại kết quả" data-en="Review the results">Xem lại kết quả</h3><p data-vi="Mở từng nhóm để xem đường dẫn. Màu xanh là dữ liệu có thể tạo lại. Màu cam cần xem kỹ. Dữ liệu cá nhân không được chọn mặc định." data-en="Expand each group to inspect paths. Green is rebuildable data. Orange needs review. Personal data is not selected by default.">Mở từng nhóm để xem đường dẫn. Màu xanh là dữ liệu có thể tạo lại. Màu cam cần xem kỹ. Dữ liệu cá nhân không được chọn mặc định.</p></div></li>
+            <li><div class="instruction-number">3</div><div><h3 data-vi="Chọn mục cần dọn" data-en="Choose what to clean">Chọn mục cần dọn</h3><p data-vi="Dùng Chọn đề xuất nếu muốn lấy lựa chọn an toàn. Bỏ dấu chọn ở bất kỳ nhóm nào bạn muốn giữ lại." data-en="Use Select Recommended for a safer starting point. Clear any group you want to keep.">Dùng Chọn đề xuất nếu muốn lấy lựa chọn an toàn. Bỏ dấu chọn ở bất kỳ nhóm nào bạn muốn giữ lại.</p></div></li>
+            <li><div class="instruction-number">4</div><div><h3 data-vi="Bấm Chuyển vào Thùng rác" data-en="Select Move to Trash">Bấm Chuyển vào Thùng rác</h3><p data-vi="Kiểm tra tổng dung lượng trong hộp xác nhận. Giữ tùy chọn Xóa vĩnh viễn ở trạng thái tắt nếu bạn muốn có thể khôi phục tệp." data-en="Check the total size in the confirmation dialog. Keep Delete Permanently off if you may need to restore files.">Kiểm tra tổng dung lượng trong hộp xác nhận. Giữ tùy chọn Xóa vĩnh viễn ở trạng thái tắt nếu bạn muốn có thể khôi phục tệp.</p></div></li>
+          </ol>
+          <div class="warning"><strong data-vi="Cẩn thận với Xóa vĩnh viễn" data-en="Be careful with Delete Permanently">Cẩn thận với Xóa vĩnh viễn</strong><span data-vi="Tệp bị xóa ngay và không thể lấy lại từ Thùng rác. Chỉ bật khi bạn đã kiểm tra đầy đủ các đường dẫn." data-en="Files are removed immediately and cannot be restored from Trash. Enable it only after checking every selected path.">Tệp bị xóa ngay và không thể lấy lại từ Thùng rác. Chỉ bật khi bạn đã kiểm tra đầy đủ các đường dẫn.</span></div>
+        </section>
+
+        <section class="doc-section" id="apps">
+          <div class="section-heading"><h2 data-vi="Gỡ ứng dụng và dữ liệu còn sót" data-en="Uninstall apps and leftover data">Gỡ ứng dụng và dữ liệu còn sót</h2><p data-vi="Khu vực Ứng dụng tìm cả app và những tệp hỗ trợ liên quan đến app đó." data-en="The Applications area finds both the app and its related support files.">Khu vực Ứng dụng tìm cả app và những tệp hỗ trợ liên quan đến app đó.</p></div>
+          <figure class="guide-shot"><img src="assets/screenshots/apps.webp" width="1600" height="1075" loading="lazy" alt="Danh sách ứng dụng đã cài cùng dung lượng và dữ liệu liên quan" data-alt-vi="Danh sách ứng dụng đã cài cùng dung lượng và dữ liệu liên quan" data-alt-en="Installed apps with their size and related data"><figcaption data-vi="Chọn một ứng dụng để xem app, cache, cấu hình, container và log trước khi gỡ." data-en="Select an app to inspect its bundle, caches, settings, containers, and logs before uninstalling.">Chọn một ứng dụng để xem app, cache, cấu hình, container và log trước khi gỡ.</figcaption></figure>
+          <ol class="instructions compact">
+            <li><div class="instruction-number">1</div><div><h3 data-vi="Mở Ứng dụng và bấm Quét ứng dụng" data-en="Open Applications and select Scan Apps">Mở Ứng dụng và bấm Quét ứng dụng</h3><p data-vi="Chờ VigClean tải danh sách app đã cài và tính dung lượng liên quan." data-en="Wait while VigClean loads installed apps and calculates related storage.">Chờ VigClean tải danh sách app đã cài và tính dung lượng liên quan.</p></div></li>
+            <li><div class="instruction-number">2</div><div><h3 data-vi="Chọn app rồi kiểm tra đường dẫn" data-en="Select an app and review its paths">Chọn app rồi kiểm tra đường dẫn</h3><p data-vi="Bỏ chọn dữ liệu bạn muốn giữ, chẳng hạn cấu hình hoặc tài liệu làm việc của app." data-en="Clear any data you want to keep, such as settings or working documents.">Bỏ chọn dữ liệu bạn muốn giữ, chẳng hạn cấu hình hoặc tài liệu làm việc của app.</p></div></li>
+            <li><div class="instruction-number">3</div><div><h3 data-vi="Bật tắt app liên quan khi cần" data-en="Quit related apps when needed">Bật tắt app liên quan khi cần</h3><p data-vi="Tùy chọn này giúp tránh lỗi tệp đang được sử dụng. Hãy lưu công việc trong app trước khi tiếp tục." data-en="This prevents errors caused by files in use. Save your work in the app before continuing.">Tùy chọn này giúp tránh lỗi tệp đang được sử dụng. Hãy lưu công việc trong app trước khi tiếp tục.</p></div></li>
+            <li><div class="instruction-number">4</div><div><h3 data-vi="Bấm Gỡ cài đặt và xác nhận" data-en="Select Uninstall and confirm">Bấm Gỡ cài đặt và xác nhận</h3><p data-vi="macOS có thể hỏi mật khẩu quản trị nếu app hoặc dữ liệu nằm trong vị trí được bảo vệ." data-en="macOS may request an administrator password when the app or its data is in a protected location.">macOS có thể hỏi mật khẩu quản trị nếu app hoặc dữ liệu nằm trong vị trí được bảo vệ.</p></div></li>
+          </ol>
+        </section>
+
+        <section class="doc-section" id="disk">
+          <div class="section-heading"><h2 data-vi="Tìm thư mục đang chiếm dung lượng" data-en="Find folders using your storage">Tìm thư mục đang chiếm dung lượng</h2><p data-vi="Phân tích ổ đĩa giúp tìm tệp lớn. Kết quả không tự động được chọn để xóa." data-en="Storage analysis helps find large files. Results are not automatically selected for deletion.">Phân tích ổ đĩa giúp tìm tệp lớn. Kết quả không tự động được chọn để xóa.</p></div>
+          <figure class="guide-shot"><img src="assets/screenshots/disk.webp" width="1600" height="1075" loading="lazy" alt="Kết quả phân tích ổ đĩa theo thư mục và dung lượng" data-alt-vi="Kết quả phân tích ổ đĩa theo thư mục và dung lượng" data-alt-en="Storage analysis grouped by folder and size"><figcaption data-vi="Mở từng nhóm để xem đường dẫn và khuyến nghị trước khi xử lý." data-en="Expand a group to inspect its paths and recommendations before taking action.">Mở từng nhóm để xem đường dẫn và khuyến nghị trước khi xử lý.</figcaption></figure>
+          <div class="two-column-help">
+            <div><h3 data-vi="Cách dùng" data-en="How to use it">Cách dùng</h3><p data-vi="Mở Ổ đĩa, bắt đầu phân tích, sau đó sắp xếp theo dung lượng. Mở nhóm lớn để tìm đúng thư mục cần xem." data-en="Open Storage, start analysis, then sort by size. Expand large groups to locate the folder you need to review.">Mở Ổ đĩa, bắt đầu phân tích, sau đó sắp xếp theo dung lượng. Mở nhóm lớn để tìm đúng thư mục cần xem.</p></div>
+            <div><h3 data-vi="Downloads và Documents" data-en="Downloads and Documents">Downloads và Documents</h3><p data-vi="Hai thư mục này có thể chứa dữ liệu cá nhân nên bị loại khỏi quét dọn mặc định. Chỉ bật Quét Downloads/Documents khi bạn muốn tự xem lại chúng." data-en="These folders may contain personal data, so cleanup scans exclude them by default. Enable Scan Downloads/Documents only when you intend to review them.">Hai thư mục này có thể chứa dữ liệu cá nhân nên bị loại khỏi quét dọn mặc định. Chỉ bật Quét Downloads/Documents khi bạn muốn tự xem lại chúng.</p></div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="history">
+          <div class="section-heading"><h2 data-vi="Kiểm tra kết quả trong Lịch sử" data-en="Review results in History">Kiểm tra kết quả trong Lịch sử</h2><p data-vi="Sau mỗi lần dọn hoặc gỡ app, VigClean lưu một bản ghi ngay trên máy." data-en="After each cleanup or uninstall, VigClean stores a record locally on your Mac.">Sau mỗi lần dọn hoặc gỡ app, VigClean lưu một bản ghi ngay trên máy.</p></div>
+          <figure class="guide-shot"><img src="assets/screenshots/history.webp" width="1600" height="1075" loading="lazy" alt="Lịch sử dọn dẹp trong VigClean" data-alt-vi="Lịch sử dọn dẹp trong VigClean" data-alt-en="Cleanup history in VigClean"><figcaption data-vi="Mỗi bản ghi cho biết thời gian, dung lượng thực tế thu hồi, số mục đã xử lý và số lỗi." data-en="Each entry shows the time, actual recovered space, processed item count, and errors.">Mỗi bản ghi cho biết thời gian, dung lượng thực tế thu hồi, số mục đã xử lý và số lỗi.</figcaption></figure>
+          <p data-vi="Bấm Xóa lịch sử nếu không muốn giữ các bản ghi. Việc này chỉ xóa nhật ký của VigClean, không tác động đến tệp đã dọn hoặc Thùng rác." data-en="Select Clear History if you do not want to keep these records. This removes only VigClean's log and does not affect cleaned files or Trash.">Bấm Xóa lịch sử nếu không muốn giữ các bản ghi. Việc này chỉ xóa nhật ký của VigClean, không tác động đến tệp đã dọn hoặc Thùng rác.</p>
+        </section>
+
+        <section class="doc-section" id="updates">
+          <div class="section-heading"><h2 data-vi="Cập nhật VigClean" data-en="Update VigClean">Cập nhật VigClean</h2><p data-vi="VigClean tự kiểm tra bản phát hành mới từ GitHub. Gói tải về được xác minh chữ ký trước khi cài." data-en="VigClean checks GitHub for new releases. Downloaded updates are signature-verified before installation.">VigClean tự kiểm tra bản phát hành mới từ GitHub. Gói tải về được xác minh chữ ký trước khi cài.</p></div>
+          <ol class="instructions compact">
+            <li><div class="instruction-number">1</div><div><h3 data-vi="Kiểm tra thủ công" data-en="Check manually">Kiểm tra thủ công</h3><p data-vi="Trên thanh menu macOS, mở VigClean rồi chọn Check for Updates." data-en="From the macOS menu bar, open VigClean and choose Check for Updates.">Trên thanh menu macOS, mở VigClean rồi chọn Check for Updates.</p></div></li>
+            <li><div class="instruction-number">2</div><div><h3 data-vi="Cài bản mới" data-en="Install the new version">Cài bản mới</h3><p data-vi="Nếu có bản mới, đọc ghi chú phát hành, chọn cập nhật và cho phép ứng dụng khởi động lại." data-en="When an update is available, review the release notes, install it, and allow the app to relaunch.">Nếu có bản mới, đọc ghi chú phát hành, chọn cập nhật và cho phép ứng dụng khởi động lại.</p></div></li>
+          </ol>
+        </section>
+
+        <section class="doc-section" id="troubleshooting">
+          <div class="section-heading"><h2 data-vi="Khi VigClean không thể quét hoặc xóa" data-en="When VigClean cannot scan or remove a file">Khi VigClean không thể quét hoặc xóa</h2><p data-vi="Hãy kiểm tra các trường hợp phổ biến dưới đây trước khi chạy lại." data-en="Check these common cases before trying again.">Hãy kiểm tra các trường hợp phổ biến dưới đây trước khi chạy lại.</p></div>
+          <div class="faq-list">
+            <details><summary data-vi="macOS không cho mở VigClean" data-en="macOS will not open VigClean">macOS không cho mở VigClean</summary><p data-vi="Trong Applications, bấm chuột phải vào VigClean, chọn Open rồi xác nhận. Nếu vẫn bị chặn, mở System Settings, Privacy &amp; Security và chọn Open Anyway cho VigClean." data-en="In Applications, right-click VigClean, choose Open, and confirm. If it remains blocked, open System Settings, Privacy &amp; Security, then choose Open Anyway for VigClean.">Trong Applications, bấm chuột phải vào VigClean, chọn Open rồi xác nhận. Nếu vẫn bị chặn, mở System Settings, Privacy &amp; Security và chọn Open Anyway cho VigClean.</p></details>
+            <details><summary data-vi="Một số thư mục không xuất hiện" data-en="Some folders do not appear">Một số thư mục không xuất hiện</summary><p data-vi="macOS có thể giới hạn quyền truy cập. Mở System Settings, Privacy &amp; Security, Full Disk Access, bật VigClean rồi mở lại ứng dụng." data-en="macOS may limit access. Open System Settings, Privacy &amp; Security, Full Disk Access, enable VigClean, then reopen the app.">macOS có thể giới hạn quyền truy cập. Mở System Settings, Privacy &amp; Security, Full Disk Access, bật VigClean rồi mở lại ứng dụng.</p></details>
+            <details><summary data-vi="Có lỗi tệp đang được sử dụng" data-en="A file is in use">Có lỗi tệp đang được sử dụng</summary><p data-vi="Lưu công việc, thoát app liên quan và thử lại. Khi gỡ ứng dụng, bạn có thể bật Tắt app liên quan khi xóa dữ liệu." data-en="Save your work, quit the related app, and try again. During uninstall, you can enable Quit affected apps before deleting data.">Lưu công việc, thoát app liên quan và thử lại. Khi gỡ ứng dụng, bạn có thể bật Tắt app liên quan khi xóa dữ liệu.</p></details>
+            <details><summary data-vi="Muốn khôi phục tệp vừa dọn" data-en="Restore a recently cleaned file">Muốn khôi phục tệp vừa dọn</summary><p data-vi="Nếu bạn không bật Xóa vĩnh viễn, mở Thùng rác, bấm chuột phải vào tệp và chọn Put Back. Tệp đã xóa vĩnh viễn không thể khôi phục bằng VigClean." data-en="If Delete Permanently was off, open Trash, right-click the file, and choose Put Back. VigClean cannot restore permanently deleted files.">Nếu bạn không bật Xóa vĩnh viễn, mở Thùng rác, bấm chuột phải vào tệp và chọn Put Back. Tệp đã xóa vĩnh viễn không thể khôi phục bằng VigClean.</p></details>
+            <details><summary data-vi="Một đường dẫn bị VigClean chặn" data-en="VigClean blocks a path">Một đường dẫn bị VigClean chặn</summary><p data-vi="VigClean chặn thư mục hệ thống, thư mục gốc của người dùng và đường dẫn bạn đã đánh dấu bảo vệ. Đây là cơ chế an toàn, không phải lỗi quét." data-en="VigClean blocks system folders, user root folders, and paths you marked as protected. This is a safety feature, not a scan error.">VigClean chặn thư mục hệ thống, thư mục gốc của người dùng và đường dẫn bạn đã đánh dấu bảo vệ. Đây là cơ chế an toàn, không phải lỗi quét.</p></details>
+          </div>
+          <div class="support-row"><div><h3 data-vi="Vẫn cần trợ giúp?" data-en="Still need help?">Vẫn cần trợ giúp?</h3><p data-vi="Tạo issue và mô tả phiên bản macOS, phiên bản VigClean cùng thao tác gây lỗi. Không đăng đường dẫn hoặc dữ liệu riêng tư." data-en="Open an issue with your macOS version, VigClean version, and the action that failed. Do not post private paths or data.">Tạo issue và mô tả phiên bản macOS, phiên bản VigClean cùng thao tác gây lỗi. Không đăng đường dẫn hoặc dữ liệu riêng tư.</p></div><a class="secondary-cta" href="https://github.com/vigstudio/VigClean/issues" data-vi="Báo lỗi trên GitHub" data-en="Report on GitHub">Báo lỗi trên GitHub</a></div>
+        </section>
       </article>
-
-      <article class="workflow-feature reverse reveal">
-        <div class="feature-copy">
-          <h3 data-vi="Gỡ ứng dụng sạch hơn" data-en="Remove apps more completely">Gỡ ứng dụng sạch hơn</h3>
-          <p data-vi="VigClean tìm app cùng cache, tùy chọn, container, log và dữ liệu hỗ trợ liên quan. Mở cây đường dẫn để xem trước từng mục." data-en="VigClean finds the app plus related caches, preferences, containers, logs, and support data. Expand paths to review each item.">VigClean tìm app cùng cache, tùy chọn, container, log và dữ liệu hỗ trợ liên quan. Mở cây đường dẫn để xem trước từng mục.</p>
-        </div>
-        <figure><img src="assets/screenshots/apps.webp" width="1600" height="1074" loading="lazy" alt="Danh sách ứng dụng trong VigClean" data-alt-vi="Danh sách ứng dụng trong VigClean" data-alt-en="Installed apps in VigClean"></figure>
-      </article>
-
-      <article class="workflow-feature reveal">
-        <div class="feature-copy">
-          <h3 data-vi="Hiểu ổ đĩa trước khi xóa" data-en="Understand storage before deleting">Hiểu ổ đĩa trước khi xóa</h3>
-          <p data-vi="Phân tích dung lượng theo nhóm, xem thư mục lớn và đọc khuyến nghị trước khi chọn bất kỳ dữ liệu nào." data-en="Analyze storage by category, inspect large folders, and read recommendations before selecting anything.">Phân tích dung lượng theo nhóm, xem thư mục lớn và đọc khuyến nghị trước khi chọn bất kỳ dữ liệu nào.</p>
-        </div>
-        <figure><img src="assets/screenshots/disk.webp" width="1600" height="1074" loading="lazy" alt="Kết quả phân tích ổ đĩa trong VigClean" data-alt-vi="Kết quả phân tích ổ đĩa trong VigClean" data-alt-en="Disk analysis results in VigClean"></figure>
-      </article>
-    </section>
-
-    <section class="guide-section safety-section" id="safety">
-      <div class="safety-copy reveal">
-        <h2 data-vi="An toàn được thiết kế từ lõi" data-en="Safety is built into the core">An toàn được thiết kế từ lõi</h2>
-        <p data-vi="Mọi đường dẫn đều được xác thực trước khi xóa thường và được kiểm tra lại trước thao tác cần quyền quản trị." data-en="Every path is validated before normal deletion and checked again before an administrator operation.">Mọi đường dẫn đều được xác thực trước khi xóa thường và được kiểm tra lại trước thao tác cần quyền quản trị.</p>
-      </div>
-      <div class="safety-list reveal">
-        <article>
-          <h3 data-vi="Thùng rác mặc định" data-en="Trash by default">Thùng rác mặc định</h3>
-          <p data-vi="Khôi phục được nếu đổi ý. Xóa vĩnh viễn phải được bật rõ ràng." data-en="Recover files if you change your mind. Permanent deletion requires explicit opt-in.">Khôi phục được nếu đổi ý. Xóa vĩnh viễn phải được bật rõ ràng.</p>
-        </article>
-        <article>
-          <h3 data-vi="Danh sách bảo vệ" data-en="Protected List">Danh sách bảo vệ</h3>
-          <p data-vi="Đánh dấu thư mục quan trọng để loại khỏi lựa chọn và mọi thao tác xóa." data-en="Mark important folders to exclude them from selection and every deletion route.">Đánh dấu thư mục quan trọng để loại khỏi lựa chọn và mọi thao tác xóa.</p>
-        </article>
-        <article>
-          <h3 data-vi="Lịch sử minh bạch" data-en="Transparent history">Lịch sử minh bạch</h3>
-          <p data-vi="Xem dữ liệu đã xử lý, dung lượng thực tế thu hồi, số mục và lỗi của mỗi lần chạy." data-en="Review processed data, actual recovered space, item counts, and errors for each run.">Xem dữ liệu đã xử lý, dung lượng thực tế thu hồi, số mục và lỗi của mỗi lần chạy.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="guide-section update-section" id="updates">
-      <div class="update-panel reveal">
-        <div>
-          <h2 data-vi="Luôn nhận bản mới" data-en="Stay current automatically">Luôn nhận bản mới</h2>
-          <p data-vi="VigClean kiểm tra GitHub Releases mỗi ngày. Bản cập nhật được xác minh bằng chữ ký EdDSA trước khi giải nén và cài đặt." data-en="VigClean checks GitHub Releases daily. Updates are verified with an EdDSA signature before extraction and installation.">VigClean kiểm tra GitHub Releases mỗi ngày. Bản cập nhật được xác minh bằng chữ ký EdDSA trước khi giải nén và cài đặt.</p>
-        </div>
-        <ol>
-          <li data-vi="Tự động kiểm tra bản phát hành mới" data-en="Automatically check for new releases">Tự động kiểm tra bản phát hành mới</li>
-          <li data-vi="Tải và xác minh gói cập nhật" data-en="Download and verify the update archive">Tải và xác minh gói cập nhật</li>
-          <li data-vi="Cài đặt an toàn khi app sẵn sàng khởi động lại" data-en="Install safely when the app is ready to relaunch">Cài đặt an toàn khi app sẵn sàng khởi động lại</li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="closing-section">
-      <div class="reveal">
-        <h2 data-vi="Sẵn sàng dọn máy?" data-en="Ready to clean your Mac?">Sẵn sàng dọn máy?</h2>
-        <p data-vi="Tải bản mới nhất, quét trước và chỉ xóa những gì bạn đã xem lại." data-en="Download the latest release, scan first, and remove only what you reviewed.">Tải bản mới nhất, quét trước và chỉ xóa những gì bạn đã xem lại.</p>
-        <a class="primary-cta" href="https://github.com/vigstudio/VigClean/releases/latest" data-vi="Tải bản mới nhất" data-en="Download latest">Tải bản mới nhất</a>
-      </div>
-    </section>
+    </div>
   </main>
 
   <footer>
-    <a class="brand" href="#top" aria-label="VigClean home"><img src="assets/logo.webp" width="34" height="34" alt=""><span>VigClean</span></a>
-    <p data-vi="Trình dọn dẹp macOS mã nguồn mở, xử lý tại máy." data-en="An open-source macOS cleaner that works on-device.">Trình dọn dẹp macOS mã nguồn mở, xử lý tại máy.</p>
+    <a class="brand" href="#top" aria-label="VigClean"><img src="assets/logo.webp" width="32" height="32" alt=""><span>VigClean</span></a>
+    <p data-vi="Tài liệu cho VigClean trên macOS." data-en="Documentation for VigClean on macOS.">Tài liệu cho VigClean trên macOS.</p>
     <a href="https://github.com/vigstudio/VigClean">GitHub</a>
   </footer>
 </body>
