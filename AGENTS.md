@@ -98,6 +98,7 @@ Risk levels:
 - System roots, user roots, and sensitive subtrees are blocked by `DeletionSafetyValidator`.
 - Users can protect additional paths. Protected paths are excluded from selection and deletion.
 - Scan results classify every cleanup path as removable, administrator-required, protected, or unavailable. Protected and unavailable paths cannot be selected.
+- Cleanup selection is normalized before preview and deletion: duplicate URLs and descendants of selected parents are removed, hidden files are included in allocated-size accounting, and hard links are counted once by device/inode identity.
 - Admin permission is requested only when required and enabled.
 - Related apps can be quit before their data is removed.
 - Downloads and Documents scanning is disabled by default.
@@ -271,7 +272,7 @@ Features that should not be copied without substantial validation:
 - `DONE` Strengthen symlink handling and revalidate resolved targets immediately before deletion.
 - `PLANNED` Add explicit per-operation and total-item safety caps.
 - `PLANNED` Add a real dry-run mode that exercises validation and accounting without file changes.
-- `PLANNED` Deduplicate overlapping parent/child selections before size calculation and deletion.
+- `DONE` Deduplicate overlapping parent/child selections before size calculation and deletion.
 - `PLANNED` Process deletion in cancellable chunks with honest item and byte progress.
 - `PLANNED` Store per-path success, skip, and error details in the local operation log.
 - `PLANNED` Add adversarial tests for symlinks, traversal, NULL bytes, firmlinks, stale paths, overlapping selections, and protected roots.
@@ -387,6 +388,7 @@ For a release:
 - 2026-09-01: Kept release app bundles as temporary staging artifacts and removed them automatically after packaging to avoid duplicate VigClean results in Spotlight.
 - 2026-09-01: Canonicalized `/var`, `/tmp`, and `/etc` firmlinks, rejected suspicious symlink redirects, and required the resolved target to remain unchanged immediately before deletion.
 - 2026-09-01: Explicitly deferred or rejected cleanup features whose safety, recovery, or truthfulness contracts are not yet proven.
+- 2026-09-01: Made cleanup previews and deletion payloads share one normalized selection plan, with recursive allocated-size accounting that includes hidden files and deduplicates hard links.
 
 ## Session log
 
@@ -442,6 +444,14 @@ For a release:
 - Important behavior or files changed: added canonical firmlink comparison, suspicious cross-scope symlink rejection, validation snapshots, immediate pre-delete revalidation, administrator-batch revalidation, and adversarial temporary-fixture tests.
 - Verification performed: `swift test` passed eight tests across deletion safety and cleanability suites; `swift build -c release` passed.
 - Remaining limitation or follow-up: the administrator authorization window cannot be made race-free without a validated privileged helper; selection deduplication and truthful allocated-size accounting are next.
+- Commit: included with this entry.
+
+### 2026-09-01: Truthful selection and allocated-size accounting
+
+- Outcome: duplicate URLs and selected descendants are removed before preview and deletion, preventing double-counted bytes and repeated delete errors.
+- Important behavior or files changed: added a shared cleanup selection plan, recursive allocated-size calculator, hidden-file accounting, device/inode hard-link deduplication, and consistent accounting for cleanup and uninstall selections.
+- Verification performed: eleven tests passed using temporary fixtures, including parent/child deletion, hidden files, hard links, firmlinks, symlinks, protected paths, and cleanability; release build passed; real app UI verified empty, scanning, determinate progress, disabled destructive action, and cancellation states without deleting user data.
+- Remaining limitation or follow-up: chunked cancellation, operation caps, byte progress, and detailed per-path logs are next. The host currently selects Command Line Tools by default, so verification used `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` to provide the required SwiftUI macro plugin.
 - Commit: included with this entry.
 
 ## Session log template

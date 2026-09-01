@@ -71,11 +71,7 @@ final class CleanerViewModel: ObservableObject {
     }
 
     var selectedBytes: Int64 {
-        findings
-            .flatMap(\.pathEntries)
-            .flatMap(\.flattened)
-            .filter { selectedPathIDs.contains($0.id) && cleanability(for: $0).isSelectable }
-            .reduce(Int64(0)) { $0 + $1.bytes }
+        CleanupSelectionPlan(findings: selectedFindings).estimatedBytes
     }
 
     var selectedItemCount: Int {
@@ -499,7 +495,9 @@ final class CleanerViewModel: ObservableObject {
 
     func selectedEntries(for app: InstalledApp) -> [CleanupPathEntry] {
         let selected = appPathSelections[app.appURL.path] ?? Set(app.relatedEntries.flatMap(\.flattened).map(\.id))
-        return app.relatedEntries.flatMap { minimalSelectedEntries($0, selectedIDs: selected) }.filter { !isProtected($0) }
+        let entries = app.relatedEntries.flatMap { minimalSelectedEntries($0, selectedIDs: selected) }
+            .filter { cleanability(for: $0).isSelectable }
+        return CleanupSelectionPlan(entries: entries).entries
     }
 
     func isAppPathSelected(_ entry: CleanupPathEntry, app: InstalledApp) -> Bool {
@@ -570,11 +568,12 @@ final class CleanerViewModel: ObservableObject {
 
 private extension CleanupFinding {
     func withPathEntries(_ entries: [CleanupPathEntry]) -> CleanupFinding {
-        CleanupFinding(
+        let plan = CleanupSelectionPlan(entries: entries)
+        return CleanupFinding(
             title: title,
             detail: detail,
-            pathEntries: entries,
-            bytes: entries.reduce(Int64(0)) { $0 + $1.bytes },
+            pathEntries: plan.entries,
+            bytes: plan.estimatedBytes,
             risk: risk,
             selectedByDefault: selectedByDefault
         )

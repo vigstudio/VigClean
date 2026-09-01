@@ -207,7 +207,9 @@ struct CleanupScanner: Sendable {
         var deleted: Int64 = 0
         var errors: [String] = []
         var adminEntries: [(url: URL, bytes: Int64, snapshot: DeletionValidationSnapshot)] = []
-        let totalEntries = max(findings.flatMap(\.pathEntries).flatMap(\.flattened).filter { fileManager.fileExists(atPath: $0.url.path) }.count, 1)
+        let deletionEntries = CleanupSelectionPlan(findings: findings).entries
+            .filter { fileManager.fileExists(atPath: $0.url.path) }
+        let totalEntries = max(deletionEntries.count, 1)
         var completedEntries = 0
 
         for finding in findings {
@@ -215,42 +217,42 @@ struct CleanupScanner: Sendable {
                 let appName = finding.title.replacingOccurrences(of: "Uninstall App: ", with: "")
                 terminateProcesses(matching: appName)
             }
+        }
 
-            for entry in finding.pathEntries.flatMap(\.flattened) where fileManager.fileExists(atPath: entry.url.path) {
-                let url = entry.url
-                await progress(url.path, Double(completedEntries) / Double(totalEntries))
-                do {
-                    let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
+        for entry in deletionEntries {
+            let url = entry.url
+            await progress(url.path, Double(completedEntries) / Double(totalEntries))
+            do {
+                let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
+                let size = directorySize(url)
+                if permanently, entry.requiresAdmin, requestAdminWhenNeeded {
+                    adminEntries.append((url, size, snapshot))
+                } else if permanently {
+                    try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
+                    try fileManager.removeItem(at: url)
+                    deleted += size
+                } else {
+                    try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
+                    _ = try fileManager.trashItem(at: url, resultingItemURL: nil)
+                    deleted += size
+                }
+            } catch let safetyError as DeletionSafetyError {
+                errors.append("\(url.path): \(safetyError.localizedDescription)")
+            } catch {
+                if permanently, requestAdminWhenNeeded {
                     let size = directorySize(url)
-                    if permanently, entry.requiresAdmin, requestAdminWhenNeeded {
+                    do {
+                        let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
                         adminEntries.append((url, size, snapshot))
-                    } else if permanently {
-                        try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
-                        try fileManager.removeItem(at: url)
-                        deleted += size
-                    } else {
-                        try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
-                        _ = try fileManager.trashItem(at: url, resultingItemURL: nil)
-                        deleted += size
-                    }
-                } catch let safetyError as DeletionSafetyError {
-                    errors.append("\(url.path): \(safetyError.localizedDescription)")
-                } catch {
-                    if permanently, requestAdminWhenNeeded {
-                        let size = directorySize(url)
-                        do {
-                            let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
-                            adminEntries.append((url, size, snapshot))
-                        } catch {
-                            errors.append("\(url.path): \(error.localizedDescription)")
-                        }
-                    } else {
+                    } catch {
                         errors.append("\(url.path): \(error.localizedDescription)")
                     }
+                } else {
+                    errors.append("\(url.path): \(error.localizedDescription)")
                 }
-                completedEntries += 1
-                await progress(url.path, Double(completedEntries) / Double(totalEntries))
             }
+            completedEntries += 1
+            await progress(url.path, Double(completedEntries) / Double(totalEntries))
         }
 
         if !adminEntries.isEmpty {
@@ -292,7 +294,7 @@ struct CleanupScanner: Sendable {
     private func appendIfPresent(_ findings: inout [CleanupFinding], title: String, detail: String, risk: CleanupRisk, selected: Bool, urls: [URL]) {
         guard !Task.isCancelled else { return }
         let entries = pathEntries(for: urls)
-        let bytes = entries.reduce(Int64(0)) { $0 + $1.bytes }
+        let bytes = CleanupSelectionPlan(entries: entries).estimatedBytes
 
         guard !entries.isEmpty, bytes > 0 else { return }
 
@@ -501,46 +503,9 @@ struct CleanupScanner: Sendable {
             return cached
         }
 
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return 0 }
-
-        if !isDirectory.boolValue {
-            let bytes = fileSize(url)
-            sizeCache.insert(bytes, for: cacheKey)
-            return bytes
-        }
-
-        guard let enumerator = fileManager.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .totalFileAllocatedSizeKey, .fileAllocatedSizeKey],
-            options: [.skipsHiddenFiles],
-            errorHandler: { _, _ in true }
-        ) else {
-            return 0
-        }
-
-        var total: Int64 = 0
-        for case let fileURL as URL in enumerator {
-            if Task.isCancelled { break }
-            total += fileSize(fileURL)
-        }
+        let total = AllocatedSizeCalculator().size(of: url)
         sizeCache.insert(total, for: cacheKey)
         return total
-    }
-
-    private func fileSize(_ url: URL) -> Int64 {
-        guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .totalFileAllocatedSizeKey, .fileAllocatedSizeKey]),
-              values.isSymbolicLink != true,
-              values.isRegularFile == true else {
-            return 0
-        }
-
-        if let allocated = values.totalFileAllocatedSize ?? values.fileAllocatedSize {
-            return Int64(allocated)
-        }
-
-        let attributes = try? fileManager.attributesOfItem(atPath: url.path)
-        return attributes?[.size] as? Int64 ?? 0
     }
 
     private func findDirectories(under root: String, names: Set<String>) -> [URL] {
@@ -599,7 +564,7 @@ struct CleanupScanner: Sendable {
         let bundleID = bundle?.bundleIdentifier
         let paths = uninstallPaths(forAppAt: appURL, appName: appName, bundleID: bundleID)
         let entries = pathEntries(for: paths)
-        let bytes = entries.reduce(Int64(0)) { $0 + $1.bytes }
+        let bytes = CleanupSelectionPlan(entries: entries).estimatedBytes
 
         return InstalledApp(
             name: appName,
