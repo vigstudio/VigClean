@@ -103,7 +103,7 @@ Risk levels:
 - Downloads and Documents scanning is disabled by default.
 - Cleanup and uninstall operations are written to local history.
 
-Important limitation: the current validator protects standardized paths but does not yet provide the complete firmlink canonicalization, symlink race defense, and operation caps described in the Roadmap.
+Important limitation: normal deletion paths now canonicalize known macOS firmlinks and revalidate symlink resolution immediately before deletion. Administrator deletion is revalidated before the authorization command is launched, but a privileged helper would be required to eliminate the authorization-window race completely. Operation caps are not yet implemented.
 
 ### Application removal
 
@@ -251,13 +251,24 @@ Features that should not be copied without substantial validation:
 - Signature-only malware scanning without a maintained update and response model. It can create false confidence.
 - Universal Binary thinning as a normal cleanup default. It modifies application bundles and requires transactional backup, compatibility policy, signature validation, and rollback.
 
+### Features not approved for near-term implementation
+
+- `REJECTED` Guaranteed secure overwrite or physical-erase claims on APFS SSDs. VigClean may offer ordinary permanent deletion but must not claim recovery is physically impossible.
+- `REJECTED` Free RAM or memory purge tasks. macOS already manages cache and memory pressure; presenting this as cleanup would be misleading.
+- `RESEARCH` Browser history, cookie, and session cleanup. Do not implement until browser detection, time-scoped selection, explicit browser shutdown, profile separation, and never-selected-by-default behavior are designed and tested.
+- `RESEARCH` Trash cleanup across external volumes. Do not implement until volume-by-volume scope, permission handling, recovery expectations, and disconnected-volume behavior are explicit.
+- `DEFERRED` Signature-only malware removal. Do not ship without a maintained signature/update pipeline, quarantine and response workflow, false-positive handling, and wording that does not create false confidence.
+- `DEFERRED` Universal Binary thinning. Do not modify application bundles until transactional backup, signature verification, update compatibility, atomic replacement, and rollback are proven.
+- `DEFERRED` APFS duplicate clone consolidation. Ordinary duplicate discovery and reviewed Trash-first removal must be stable first; clone replacement also requires atomicity and rollback tests.
+- `DEFERRED` Automatic cleanup of Document Versions, iOS backups, preferences, login items, browser profiles, containers, keychains, and personal app databases. Any future scanner must be review-only, narrowly targeted, and covered by category-specific safety tests.
+
 ## Roadmap
 
 ### Engine safety and truthful results
 
 - `DONE` Add a cleanability pre-filter so UI results distinguish removable, admin-required, protected, and unavailable items.
-- `PLANNED` Canonicalize known macOS firmlinks before protected-path comparison.
-- `PLANNED` Strengthen symlink handling and revalidate resolved targets immediately before deletion.
+- `DONE` Canonicalize known macOS firmlinks before protected-path comparison.
+- `DONE` Strengthen symlink handling and revalidate resolved targets immediately before deletion.
 - `PLANNED` Add explicit per-operation and total-item safety caps.
 - `PLANNED` Add a real dry-run mode that exercises validation and accounting without file changes.
 - `PLANNED` Deduplicate overlapping parent/child selections before size calculation and deletion.
@@ -374,6 +385,8 @@ For a release:
 - 2026-09-01: Established this `AGENTS.md` as the single durable project-memory and roadmap file for future sessions.
 - 2026-09-01: Classified cleanup paths before selection and made protected or unavailable results non-selectable while preserving explicit administrator-required results.
 - 2026-09-01: Kept release app bundles as temporary staging artifacts and removed them automatically after packaging to avoid duplicate VigClean results in Spotlight.
+- 2026-09-01: Canonicalized `/var`, `/tmp`, and `/etc` firmlinks, rejected suspicious symlink redirects, and required the resolved target to remain unchanged immediately before deletion.
+- 2026-09-01: Explicitly deferred or rejected cleanup features whose safety, recovery, or truthfulness contracts are not yet proven.
 
 ## Session log
 
@@ -421,6 +434,14 @@ For a release:
 - Important behavior or files changed: added an exit trap to clean release staging bundles and icon generation files after packaging; distribution ZIP, DMG, and checksum files remain intact.
 - Verification performed: validated the packaging script with `bash -n` and confirmed the old release staging directory was removed.
 - Remaining limitation or follow-up: `build/VigClean.app` intentionally remains as the local development app produced by `Scripts/build-app.sh`.
+- Commit: included with this entry.
+
+### 2026-09-01: Firmlink and symlink safety hardening
+
+- Outcome: deletion validation now treats known macOS firmlink aliases consistently and refuses paths whose resolved target changes after initial validation.
+- Important behavior or files changed: added canonical firmlink comparison, suspicious cross-scope symlink rejection, validation snapshots, immediate pre-delete revalidation, administrator-batch revalidation, and adversarial temporary-fixture tests.
+- Verification performed: `swift test` passed eight tests across deletion safety and cleanability suites; `swift build -c release` passed.
+- Remaining limitation or follow-up: the administrator authorization window cannot be made race-free without a validated privileged helper; selection deduplication and truthful allocated-size accounting are next.
 - Commit: included with this entry.
 
 ## Session log template

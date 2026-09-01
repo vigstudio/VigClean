@@ -206,7 +206,7 @@ struct CleanupScanner: Sendable {
 
         var deleted: Int64 = 0
         var errors: [String] = []
-        var adminEntries: [(url: URL, bytes: Int64)] = []
+        var adminEntries: [(url: URL, bytes: Int64, snapshot: DeletionValidationSnapshot)] = []
         let totalEntries = max(findings.flatMap(\.pathEntries).flatMap(\.flattened).filter { fileManager.fileExists(atPath: $0.url.path) }.count, 1)
         var completedEntries = 0
 
@@ -220,14 +220,16 @@ struct CleanupScanner: Sendable {
                 let url = entry.url
                 await progress(url.path, Double(completedEntries) / Double(totalEntries))
                 do {
-                    try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
+                    let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
                     let size = directorySize(url)
                     if permanently, entry.requiresAdmin, requestAdminWhenNeeded {
-                        adminEntries.append((url, size))
+                        adminEntries.append((url, size, snapshot))
                     } else if permanently {
+                        try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
                         try fileManager.removeItem(at: url)
                         deleted += size
                     } else {
+                        try safetyValidator.revalidate(url, expected: snapshot, userProtectedPaths: protectedPaths)
                         _ = try fileManager.trashItem(at: url, resultingItemURL: nil)
                         deleted += size
                     }
@@ -236,7 +238,12 @@ struct CleanupScanner: Sendable {
                 } catch {
                     if permanently, requestAdminWhenNeeded {
                         let size = directorySize(url)
-                        adminEntries.append((url, size))
+                        do {
+                            let snapshot = try safetyValidator.validate(url, userProtectedPaths: protectedPaths)
+                            adminEntries.append((url, size, snapshot))
+                        } catch {
+                            errors.append("\(url.path): \(error.localizedDescription)")
+                        }
                     } else {
                         errors.append("\(url.path): \(error.localizedDescription)")
                     }
@@ -250,7 +257,7 @@ struct CleanupScanner: Sendable {
             let uniqueEntries = uniqueAdminEntries(adminEntries)
             do {
                 for entry in uniqueEntries {
-                    try safetyValidator.validate(entry.url, userProtectedPaths: protectedPaths)
+                    try safetyValidator.revalidate(entry.url, expected: entry.snapshot, userProtectedPaths: protectedPaths)
                 }
                 try removeWithAdministratorPrivileges(uniqueEntries.map(\.url))
                 deleted += uniqueEntries.reduce(Int64(0)) { $0 + $1.bytes }
@@ -776,7 +783,9 @@ struct CleanupScanner: Sendable {
         return processes.sorted()
     }
 
-    private func uniqueAdminEntries(_ entries: [(url: URL, bytes: Int64)]) -> [(url: URL, bytes: Int64)] {
+    private func uniqueAdminEntries(
+        _ entries: [(url: URL, bytes: Int64, snapshot: DeletionValidationSnapshot)]
+    ) -> [(url: URL, bytes: Int64, snapshot: DeletionValidationSnapshot)] {
         var seen = Set<String>()
         return entries.filter { seen.insert($0.url.standardizedFileURL.path).inserted }
     }
