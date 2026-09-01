@@ -40,7 +40,7 @@ Status vocabulary:
 - Platform: native macOS application
 - Language and UI: Swift 6 and SwiftUI
 - Minimum supported system for the next release: macOS 13 Ventura
-- Current public release: `0.0.2`
+- Current public release: `0.0.3`
 - Latest release: <https://github.com/vigstudio/VigClean/releases/latest>
 - Public bilingual guide: <https://vigclean-guide.netlify.app>
 - Primary product promise: make storage cleanup understandable, recoverable by default, and explicit about risk.
@@ -126,7 +126,7 @@ The storage analyzer groups disk usage, exposes large paths, supplies risk guida
 - `Scripts/build-app.sh` embeds Sparkle and applies the expected runtime search path.
 - `Scripts/package-release.sh` creates release archives and checksums.
 - Release packaging removes temporary arm64, x86_64, and Universal app bundles after producing distribution assets so Spotlight does not present staging copies as installed apps.
-- Version `0.0.2` was released publicly on GitHub.
+- Version `0.0.3` was released publicly on GitHub with arm64, x86_64, and Universal ZIP/DMG assets plus portable SHA-256 checksums.
 
 ### Documentation and website
 
@@ -136,7 +136,7 @@ The storage analyzer groups disk usage, exposes large paths, supplies risk guida
 - The guide uses real VigClean screenshots, a responsive table of contents, dark mode, reduced-motion support, and a language switch.
 - Netlify site name: `vigclean-guide`.
 - Netlify site ID: `4f586e1e-3074-46e5-b326-600f060b3915`.
-- Latest verified guide deployment at the time of this entry: `6a96549b0b463e4593e14331`.
+- Latest verified guide deployment at the time of this entry: `6a9707ecb4337cccdbb6ebd3`.
 - Local Lighthouse verification: Performance 100, Accessibility 100, Best Practices 100, SEO 100.
 
 ## Repository map
@@ -474,7 +474,7 @@ For a release:
 - Outcome: prepared a Developer ID-signed `0.0.3` release candidate supporting macOS 13 Ventura and later, and fixed architecture capture for current SwiftPM/Xcode output paths.
 - Important behavior or files changed: changed deployment and bundle minimums to 13.0, replaced a macOS 14-only SwiftUI API, updated version/build metadata, enforced fresh per-architecture capture, hardened-runtime signing, signature verification, min-version checks, optional notarization/stapling, release notes, README, guide requirement, and Sparkle appcast metadata/signature.
 - Verification performed: thirteen tests passed; arm64 and x86_64 release builds passed; Universal DMG contains both architectures with `minos 13.0`; bundle version is `0.0.3 (3)`; Developer ID signature, hardened runtime, Sparkle EdDSA signature, and SHA-256 checksums validated.
-- Remaining limitation or follow-up: Gatekeeper correctly rejects the current candidate as `Unnotarized Developer ID`. Configure a `notarytool` keychain profile, rebuild with `VIGCLEAN_NOTARY_PROFILE`, staple, validate, run Gatekeeper assessment, then publish the GitHub release and appcast commit.
+- Remaining limitation or follow-up: superseded on 2026-09-02 by the decision to publish an ad-hoc signed free build with explicit Gatekeeper approval instructions.
 - Commit: included with this entry; do not publish this candidate until notarization succeeds.
 
 ### 2026-09-02: Release-account migration guard
@@ -482,16 +482,17 @@ For a release:
 - Outcome: release packaging no longer references or silently uses the former Developer ID account.
 - Important behavior or files changed: removed the former signing identity default and made the packaging script require an explicit Developer ID Application certificate, rejecting Personal Team and Apple Development certificates.
 - Verification performed: validated the packaging script syntax and confirmed that it fails safely when no release identity or a Personal Team development identity is supplied.
-- Remaining limitation or follow-up: `vingamagic@icloud.com` currently belongs only to Personal Team `49NN45N3J2`; enroll it in the paid Apple Developer Program, create a Developer ID Application certificate, and configure notarization before publishing `0.0.3`.
+- Remaining limitation or follow-up: superseded by the product owner's decision to defer paid Developer ID enrollment and use ad-hoc distribution.
 - Commit: included with this entry.
 
-### 2026-09-02: VigClean 0.0.3 free distribution preparation
+### 2026-09-02: VigClean 0.0.3 free distribution release
 
-- Outcome: prepared fresh arm64, x86_64, and Universal `0.0.3` artifacts for free distribution without Apple Developer ID notarization.
+- Outcome: published `v0.0.3` as the latest GitHub release with fresh arm64, x86_64, and Universal artifacts, without Apple Developer ID notarization.
 - Important behavior or files changed: made ad-hoc signing the package default, retained optional Developer ID/notarization support, added explicit Gatekeeper installation guidance, and advanced the Sparkle appcast to build 3 with a new EdDSA signature.
 - Verification performed: thirteen tests passed; all app bundles passed strict code-structure verification with ad-hoc signatures; architectures, version `0.0.3 (3)`, macOS 13.0 minimum, portable checksums, and final Sparkle signature/length were validated; the Universal build launched and its Vietnamese empty-state UI was visually inspected at 1264×926.
-- Remaining limitation or follow-up: Gatekeeper rejects the unnotarized app by design until the user explicitly approves it on first launch. Publish the GitHub release and verify the public asset and appcast URLs.
-- Commit: included with this entry.
+- Remaining limitation or follow-up: Gatekeeper rejects the unnotarized app by design until the user explicitly approves it on first launch; Developer ID signing remains deferred.
+- Publication verification: GitHub reported seven uploaded assets and `v0.0.3` as latest; the public Universal ZIP returned HTTP 200 with the exact appcast length; the raw appcast exposed build 3 and the final EdDSA signature; Netlify production deployment `6a9707ecb4337cccdbb6ebd3` served the updated first-launch instructions.
+- Commits: `ad5b966`, `80d187d`, and the release-state commit containing this entry.
 
 ## Session log template
 
