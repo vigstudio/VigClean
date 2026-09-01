@@ -167,6 +167,9 @@ package_app "$BUILD_APPS_DIR/arm64/VigClean.app" "VigClean-$VERSION-arm64"
 package_app "$BUILD_APPS_DIR/x86_64/VigClean.app" "VigClean-$VERSION-x86_64"
 package_app "$BUILD_APPS_DIR/universal/VigClean.app" "VigClean-$VERSION-universal"
 
-shasum -a 256 "$DIST_DIR"/* > "$DIST_DIR/SHA256SUMS.txt"
+(
+  cd "$DIST_DIR"
+  shasum -a 256 VigClean-"$VERSION"-* > SHA256SUMS.txt
+)
 
 echo "$DIST_DIR"

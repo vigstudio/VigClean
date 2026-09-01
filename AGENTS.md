@@ -489,7 +489,7 @@ For a release:
 
 - Outcome: prepared fresh arm64, x86_64, and Universal `0.0.3` artifacts for free distribution without Apple Developer ID notarization.
 - Important behavior or files changed: made ad-hoc signing the package default, retained optional Developer ID/notarization support, added explicit Gatekeeper installation guidance, and advanced the Sparkle appcast to build 3 with a new EdDSA signature.
-- Verification performed: thirteen tests passed; all app bundles passed strict code-structure verification with ad-hoc signatures; architectures, version `0.0.3 (3)`, macOS 13.0 minimum, checksums, and final Sparkle signature/length were validated; the Universal build launched and its Vietnamese empty-state UI was visually inspected at 1264×926.
+- Verification performed: thirteen tests passed; all app bundles passed strict code-structure verification with ad-hoc signatures; architectures, version `0.0.3 (3)`, macOS 13.0 minimum, portable checksums, and final Sparkle signature/length were validated; the Universal build launched and its Vietnamese empty-state UI was visually inspected at 1264×926.
 - Remaining limitation or follow-up: Gatekeeper rejects the unnotarized app by design until the user explicitly approves it on first launch. Publish the GitHub release and verify the public asset and appcast URLs.
 - Commit: included with this entry.
 
